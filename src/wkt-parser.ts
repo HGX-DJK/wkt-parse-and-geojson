@@ -131,8 +131,33 @@ export class WKTParser {
 
   private parseLineString(): LineString {
     this.advance(); // consume LINESTRING
-    const coords = this.parseCoordinateList(-1);
+    const coords = this.parseCoordinatesList();
     return { type: 'LineString', coordinates: coords };
+  }
+
+  private parseCoordinatesList(): Position[] {
+    const token = this.peek();
+    if (token.type === 'LPAREN') {
+      this.advance(); // consume (
+      const coords: Position[] = [];
+      while (this.peek().type !== 'RPAREN') {
+        coords.push(this.parseCoordinates(2));
+        if (this.peek().type === 'COMMA') {
+          this.advance();
+        }
+      }
+      this.advance(); // consume )
+      return coords;
+    }
+    // Handle coordinates without parentheses (e.g., LINESTRING 0 0, 1 1)
+    const coords: Position[] = [];
+    while (this.peek().type === 'NUMBER') {
+      coords.push(this.parseCoordinates(2));
+      if (this.peek().type === 'COMMA') {
+        this.advance();
+      }
+    }
+    return coords;
   }
 
   private parsePolygon(): Polygon {
@@ -143,13 +168,53 @@ export class WKTParser {
 
   private parseMultiPoint(): MultiPoint {
     this.advance(); // consume MULTIPOINT
-    const coords = this.parseCoordinateList(-1);
+    const token = this.peek();
+    if (token.type === 'LPAREN') {
+      return { type: 'MultiPoint', coordinates: this.parseCoordinatesList() };
+    }
+    const coords: Position[] = [];
+    while (this.peek().type !== 'EOF' && this.peek().type !== 'RPAREN') {
+      if (this.peek().type === 'LPAREN') {
+        this.advance();
+        coords.push(this.parseCoordinates(2));
+        this.expect('RPAREN');
+        this.advance();
+      } else {
+        coords.push(this.parseCoordinates(2));
+      }
+      if (this.peek().type === 'COMMA') {
+        this.advance();
+      }
+    }
     return { type: 'MultiPoint', coordinates: coords };
   }
 
   private parseMultiLineString(): MultiLineString {
     this.advance(); // consume MULTILINESTRING
-    const lines = this.parseCoordinateListList();
+    const token = this.peek();
+    if (token.type !== 'LPAREN') {
+      return { type: 'MultiLineString', coordinates: [] };
+    }
+    this.advance(); // consume (
+    const lines: Position[][] = [];
+    while (this.peek().type !== 'RPAREN') {
+      if (this.peek().type === 'LPAREN') {
+        this.advance();
+        const coords: Position[] = [];
+        while (this.peek().type !== 'RPAREN') {
+          coords.push(this.parseCoordinates(2));
+          if (this.peek().type === 'COMMA') {
+            this.advance();
+          }
+        }
+        this.advance(); // consume )
+        lines.push(coords);
+      }
+      if (this.peek().type === 'COMMA') {
+        this.advance();
+      }
+    }
+    this.advance(); // consume )
     return { type: 'MultiLineString', coordinates: lines };
   }
 

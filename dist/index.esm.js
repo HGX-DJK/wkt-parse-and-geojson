@@ -103,8 +103,32 @@ class WKTParser {
     }
     parseLineString() {
         this.advance(); // consume LINESTRING
-        const coords = this.parseCoordinateList(-1);
+        const coords = this.parseCoordinatesList();
         return { type: 'LineString', coordinates: coords };
+    }
+    parseCoordinatesList() {
+        const token = this.peek();
+        if (token.type === 'LPAREN') {
+            this.advance(); // consume (
+            const coords = [];
+            while (this.peek().type !== 'RPAREN') {
+                coords.push(this.parseCoordinates(2));
+                if (this.peek().type === 'COMMA') {
+                    this.advance();
+                }
+            }
+            this.advance(); // consume )
+            return coords;
+        }
+        // Handle coordinates without parentheses (e.g., LINESTRING 0 0, 1 1)
+        const coords = [];
+        while (this.peek().type === 'NUMBER') {
+            coords.push(this.parseCoordinates(2));
+            if (this.peek().type === 'COMMA') {
+                this.advance();
+            }
+        }
+        return coords;
     }
     parsePolygon() {
         this.advance(); // consume POLYGON
@@ -113,12 +137,53 @@ class WKTParser {
     }
     parseMultiPoint() {
         this.advance(); // consume MULTIPOINT
-        const coords = this.parseCoordinateList(-1);
+        const token = this.peek();
+        if (token.type === 'LPAREN') {
+            return { type: 'MultiPoint', coordinates: this.parseCoordinatesList() };
+        }
+        const coords = [];
+        while (this.peek().type !== 'EOF' && this.peek().type !== 'RPAREN') {
+            if (this.peek().type === 'LPAREN') {
+                this.advance();
+                coords.push(this.parseCoordinates(2));
+                this.expect('RPAREN');
+                this.advance();
+            }
+            else {
+                coords.push(this.parseCoordinates(2));
+            }
+            if (this.peek().type === 'COMMA') {
+                this.advance();
+            }
+        }
         return { type: 'MultiPoint', coordinates: coords };
     }
     parseMultiLineString() {
         this.advance(); // consume MULTILINESTRING
-        const lines = this.parseCoordinateListList();
+        const token = this.peek();
+        if (token.type !== 'LPAREN') {
+            return { type: 'MultiLineString', coordinates: [] };
+        }
+        this.advance(); // consume (
+        const lines = [];
+        while (this.peek().type !== 'RPAREN') {
+            if (this.peek().type === 'LPAREN') {
+                this.advance();
+                const coords = [];
+                while (this.peek().type !== 'RPAREN') {
+                    coords.push(this.parseCoordinates(2));
+                    if (this.peek().type === 'COMMA') {
+                        this.advance();
+                    }
+                }
+                this.advance(); // consume )
+                lines.push(coords);
+            }
+            if (this.peek().type === 'COMMA') {
+                this.advance();
+            }
+        }
+        this.advance(); // consume )
         return { type: 'MultiLineString', coordinates: lines };
     }
     parseMultiPolygon() {

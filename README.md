@@ -74,19 +74,23 @@ npm run typecheck
 
 ### Node.js
 
+```bash
+npm install wkt-parse-and-geojson
+```
+
 ```javascript
 // CommonJS
-const { parse, build, wktToFeature } = require('./dist/index.cjs.js');
+const { parse, build, wktToFeature } = require('wkt-parse-and-geojson');
 
 // ES Module
-import { parse, build, wktToFeature } from './dist/index.esm.js';
+import { parse, build, wktToFeature } from 'wkt-parse-and-geojson';
 ```
 
 ### 浏览器 (script 标签)
 
 ```html
 <!-- UMD 方式：通过 script 标签直接引入，全局变量 WKTGeoJSON -->
-<script src="./dist/index.umd.js"></script>
+<script src="https://unpkg.com/wkt-parse-and-geojson/dist/index.umd.js"></script>
 <script>
   const geom = WKTGeoJSON.parse('POINT (116.39 39.91)');
   console.log(geom);
@@ -102,7 +106,7 @@ import { parse, build, wktToFeature } from './dist/index.esm.js';
 
 ```html
 <script type="module">
-  import { parse, build } from '../dist/index.esm.js';
+  import { parse, build } from 'wkt-parse-and-geojson';
 
   const geom = parse('POINT (116.39 39.91)');
   console.log(geom);
@@ -246,7 +250,7 @@ build({ type: 'GeometryCollection', geometries: [] })
 将 WKT 字符串转换为 GeoJSON Geometry 对象（`parse` 的语义化别名）。
 
 ```javascript
-import { wktToGeoJSON } from './dist/index.esm.js';
+import { wktToGeoJSON } from 'wkt-parse-and-geojson';
 
 const geom = wktToGeoJSON('POLYGON ((0 0, 1 0, 1 1, 0 1, 0 0))');
 // → { type: 'Polygon', coordinates: [[[0,0],[1,0],[1,1],[0,1],[0,0]]] }
@@ -266,7 +270,7 @@ const geom = wktToGeoJSON('POLYGON ((0 0, 1 0, 1 1, 0 1, 0 0))');
 **返回：** `Feature`
 
 ```javascript
-import { wktToFeature } from './dist/index.esm.js';
+import { wktToFeature } from 'wkt-parse-and-geojson';
 
 // 带属性
 wktToFeature('POINT (116.39 39.91)', { name: '北京', pop: 21540000 })
@@ -298,7 +302,7 @@ wktToFeature('POLYGON ((0 0, 1 0, 1 1, 0 1, 0 0))')
 **返回：** `FeatureCollection`
 
 ```javascript
-import { wktToFeatureCollection } from './dist/index.esm.js';
+import { wktToFeatureCollection } from 'wkt-parse-and-geojson';
 
 const fc = wktToFeatureCollection(
   ['POINT (116.39 39.91)', 'POINT (121.47 31.23)', 'POINT (113.26 23.13)'],
@@ -324,7 +328,7 @@ const fc2 = wktToFeatureCollection(['POINT (0 0)', 'LINESTRING (0 0, 1 1)']);
 将 GeoJSON Geometry 对象转换为 WKT 字符串（`build` 的语义化别名）。
 
 ```javascript
-import { geojsonToWkt } from './dist/index.esm.js';
+import { geojsonToWkt } from 'wkt-parse-and-geojson';
 
 geojsonToWkt({ type: 'Point', coordinates: [116.39, 39.91] })
 // → 'POINT (116.39 39.91)'
@@ -339,7 +343,7 @@ geojsonToWkt({ type: 'Point', coordinates: [116.39, 39.91] })
 **抛出：** 若 `Feature.geometry` 为 `null`，则抛出 `Error`
 
 ```javascript
-import { featureToWkt } from './dist/index.esm.js';
+import { featureToWkt } from 'wkt-parse-and-geojson';
 
 featureToWkt({
   type: 'Feature',
@@ -358,7 +362,7 @@ featureToWkt({
 **返回：** `Array<string | null>`
 
 ```javascript
-import { featureCollectionToWkt } from './dist/index.esm.js';
+import { featureCollectionToWkt } from 'wkt-parse-and-geojson';
 
 featureCollectionToWkt({
   type: 'FeatureCollection',
@@ -578,7 +582,7 @@ parse('POINT (0 0) garbage')
 ### WKT → GeoJSON Feature → 回写 WKT
 
 ```javascript
-import { wktToFeature, featureToWkt } from './dist/index.esm.js';
+import { wktToFeature, featureToWkt } from 'wkt-parse-and-geojson';
 
 const wkt = 'POLYGON ((116 39, 117 39, 117 40, 116 40, 116 39))';
 
@@ -597,7 +601,7 @@ console.log(outputWkt);
 ### 批量城市点构建 FeatureCollection
 
 ```javascript
-import { wktToFeatureCollection } from './dist/index.esm.js';
+import { wktToFeatureCollection } from 'wkt-parse-and-geojson';
 
 const cities = [
   { wkt: 'POINT (116.39 39.91)', props: { name: '北京', code: 'BJ' } },
@@ -617,7 +621,7 @@ console.log(JSON.stringify(fc, null, 2));
 ### 使用工厂方法组合复杂几何
 
 ```javascript
-import { createPoint, createLineString, createPolygon, createGeometryCollection, build } from './dist/index.esm.js';
+import { createPoint, createLineString, createPolygon, createGeometryCollection, build } from 'wkt-parse-and-geojson';
 
 const collection = createGeometryCollection([
   createPoint(0, 0),

@@ -1,6 +1,5 @@
 import { Geometry } from './types';
 import { parse } from './wkt-parser';
-import { build } from './wkt-builder';
 
 // 预定义常量，避免重复创建
 const VALID_GEOMETRY_TYPES = [
@@ -8,6 +7,9 @@ const VALID_GEOMETRY_TYPES = [
   'MultiPoint', 'MultiLineString', 'MultiPolygon',
   'GeometryCollection'
 ] as const;
+
+// 预计算错误消息字符串
+const VALID_TYPES_MESSAGE = `Invalid geometry type. Must be one of: ${VALID_GEOMETRY_TYPES.join(', ')}`;
 
 export interface ValidationResult {
   valid: boolean;
@@ -53,7 +55,7 @@ export function validateGeoJSON(geojson: unknown): ValidationResult {
   const type = obj.type as string;
 
   if (!VALID_GEOMETRY_TYPES.includes(type as typeof VALID_GEOMETRY_TYPES[number])) {
-    return { valid: false, error: `Invalid geometry type: "${type}". Must be one of: ${VALID_GEOMETRY_TYPES.join(', ')}` };
+    return { valid: false, error: VALID_TYPES_MESSAGE };
   }
 
   // GeometryCollection 特殊处理
@@ -152,7 +154,7 @@ function validatePosition(pos: unknown): ValidationResult {
   }
 
   for (let i = 0; i < pos.length; i++) {
-    if (typeof pos[i] !== 'number' || isNaN(pos[i] as number)) {
+    if (typeof pos[i] !== 'number' || !Number.isFinite(pos[i] as number)) {
       return { valid: false, error: `Position[${i}] must be a valid number` };
     }
   }

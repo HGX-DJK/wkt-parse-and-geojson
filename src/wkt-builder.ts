@@ -35,15 +35,23 @@ function hasZ(coordinates: Position | Position[] | Position[][] | Position[][][]
   if (coordinates.length === 0) return false;
 
   const first = coordinates[0];
-  if (Array.isArray(first)) {
-    if (typeof first[0] === 'number') {
-      return (first as Position).length === 3;
-    }
-    if (Array.isArray(first[0])) {
-      const firstRing = (first as Position[]);
-      return firstRing.length > 0 && (firstRing[0] as Position).length === 3;
-    }
+
+  // Point: coordinates[0] 是数字，不是数组
+  if (typeof first === 'number') {
+    return (coordinates as Position).length === 3;
   }
+
+  // LineString/MultiPoint: coordinates[0] 是 Position（数字数组）
+  if (Array.isArray(first) && typeof first[0] === 'number') {
+    return (first as Position).length === 3;
+  }
+
+  // Polygon/MultiLineString: coordinates[0] 是 Position[]（线的数组）
+  if (Array.isArray(first) && Array.isArray(first[0])) {
+    const firstRing = (first as Position[]);
+    return firstRing.length > 0 && (firstRing[0] as Position).length === 3;
+  }
+
   return false;
 }
 

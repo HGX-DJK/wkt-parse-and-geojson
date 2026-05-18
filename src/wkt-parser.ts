@@ -369,6 +369,8 @@ export class WKTParser {
 
 /** 将 WKT 字符串解析为 GeoJSON Geometry 对象 */
 export function parse(wkt: string): Geometry {
-  const parser = new WKTParser();
-  return parser.parse(wkt);
+  return WKT_PARSER.parse(wkt);
 }
+
+// 单例实例
+const WKT_PARSER = new WKTParser();

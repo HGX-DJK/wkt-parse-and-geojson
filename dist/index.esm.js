@@ -286,9 +286,9 @@ class WKTParser {
     }
 }
 function parse(wkt) {
-    const parser = new WKTParser();
-    return parser.parse(wkt);
+    return WKT_PARSER.parse(wkt);
 }
+const WKT_PARSER = new WKTParser();
 
 var wktParser = /*#__PURE__*/Object.freeze({
     __proto__: null,
@@ -314,14 +314,15 @@ function hasZ(coordinates) {
     if (coordinates.length === 0)
         return false;
     const first = coordinates[0];
-    if (Array.isArray(first)) {
-        if (typeof first[0] === 'number') {
-            return first.length === 3;
-        }
-        if (Array.isArray(first[0])) {
-            const firstRing = first;
-            return firstRing.length > 0 && firstRing[0].length === 3;
-        }
+    if (typeof first === 'number') {
+        return coordinates.length === 3;
+    }
+    if (Array.isArray(first) && typeof first[0] === 'number') {
+        return first.length === 3;
+    }
+    if (Array.isArray(first) && Array.isArray(first[0])) {
+        const firstRing = first;
+        return firstRing.length > 0 && firstRing[0].length === 3;
     }
     return false;
 }
@@ -538,6 +539,7 @@ const VALID_GEOMETRY_TYPES = [
     'MultiPoint', 'MultiLineString', 'MultiPolygon',
     'GeometryCollection'
 ];
+const VALID_TYPES_MESSAGE = `Invalid geometry type. Must be one of: ${VALID_GEOMETRY_TYPES.join(', ')}`;
 function validateWKT(wkt) {
     if (!wkt || typeof wkt !== 'string') {
         return { valid: false, error: 'WKT must be a non-empty string' };
@@ -564,7 +566,7 @@ function validateGeoJSON(geojson) {
     }
     const type = obj.type;
     if (!VALID_GEOMETRY_TYPES.includes(type)) {
-        return { valid: false, error: `Invalid geometry type: "${type}". Must be one of: ${VALID_GEOMETRY_TYPES.join(', ')}` };
+        return { valid: false, error: VALID_TYPES_MESSAGE };
     }
     if (type === 'GeometryCollection') {
         if (!obj.geometries || !Array.isArray(obj.geometries)) {
@@ -649,7 +651,7 @@ function validatePosition(pos) {
         return { valid: false, error: `Position must have 2 or 3 coordinates, got ${pos.length}` };
     }
     for (let i = 0; i < pos.length; i++) {
-        if (typeof pos[i] !== 'number' || isNaN(pos[i])) {
+        if (typeof pos[i] !== 'number' || !Number.isFinite(pos[i])) {
             return { valid: false, error: `Position[${i}] must be a valid number` };
         }
     }

@@ -1,13 +1,23 @@
 {
   "name": "wkt-parse-and-geojson",
-  "version": "1.0.0",
+  "version": "1.0.2",
   "type": "module",
-  "description": "Parse WKT and build GeoJSON, convert between WKT and GeoJSON",
+  "description": "Zero-dependency WKT parser/builder and WKT↔GeoJSON converter",
   "main": "dist/index.cjs.js",
   "module": "dist/index.esm.js",
+  "browser": "dist/index.umd.js",
   "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.esm.js",
+      "require": "./dist/index.cjs.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
   "files": [
-    "dist"
+    "dist",
+    "README.md",
+    "LICENSE"
   ],
   "scripts": {
     "build": "rollup -c",
@@ -19,7 +29,10 @@
     "geojson",
     "geometry",
     "parser",
-    "gis"
+    "builder",
+    "gis",
+    "ogc",
+    "spatial"
   ],
   "author": "",
   "license": "MIT",
@@ -28,8 +41,5 @@
     "rollup": "^4.40.0",
     "tslib": "^2.8.1",
     "typescript": "^5.8.3"
-  },
-  "dependencies": {
-    "wkt-parse-and-geojson": "^1.0.0"
   }
 }

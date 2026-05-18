@@ -134,6 +134,17 @@ export class WKTParser {
     return this.advance();
   }
 
+  private skipComma(): void {
+    if (this.peek().type === 'COMMA') {
+      this.advance();
+    }
+  }
+
+  private isDone(): boolean {
+    const t = this.peek();
+    return t.type === 'RPAREN' || t.type === 'EOF';
+  }
+
   private parseGeometry(): Geometry {
     const token = this.peek();
     if (token.type !== 'WORD') {
@@ -214,7 +225,13 @@ export class WKTParser {
     if (this.isEmptyGeometry()) {
       return { type: 'Polygon', coordinates: [] };
     }
-    const rings = this.parseCoordinateListList();
+    this.consume('LPAREN');
+    const rings: Position[][] = [];
+    while (!this.isDone()) {
+      rings.push(this.parseCoordinatesList());
+      this.skipComma();
+    }
+    this.consume('RPAREN');
     return { type: 'Polygon', coordinates: rings };
   }
 
@@ -228,7 +245,7 @@ export class WKTParser {
     this.advance(); // consume outer (
 
     const coords: Position[] = [];
-    while (this.peek().type !== 'RPAREN' && this.peek().type !== 'EOF') {
+    while (!this.isDone()) {
       if (this.peek().type === 'LPAREN') {
         // 标准写法: MULTIPOINT ((x y), (x y))
         this.advance(); // consume (
@@ -238,9 +255,7 @@ export class WKTParser {
         // 非标准写法: MULTIPOINT (x y, x y)
         coords.push(this.parseCoordinates());
       }
-      if (this.peek().type === 'COMMA') {
-        this.advance();
-      }
+      this.skipComma();
     }
     this.consume('RPAREN');
     return { type: 'MultiPoint', coordinates: coords };
@@ -255,11 +270,9 @@ export class WKTParser {
     }
     this.advance(); // consume outer (
     const lines: Position[][] = [];
-    while (this.peek().type !== 'RPAREN' && this.peek().type !== 'EOF') {
+    while (!this.isDone()) {
       lines.push(this.parseCoordinatesList());
-      if (this.peek().type === 'COMMA') {
-        this.advance();
-      }
+      this.skipComma();
     }
     this.consume('RPAREN');
     return { type: 'MultiLineString', coordinates: lines };
@@ -272,7 +285,13 @@ export class WKTParser {
     if (this.isEmptyGeometry()) {
       return { type: 'MultiPolygon', coordinates: [] };
     }
-    const polys = this.parseCoordinateListListList();
+    this.consume('LPAREN');
+    const polys: Position[][][] = [];
+    while (!this.isDone()) {
+      polys.push(this.parseCoordinateListList());
+      this.skipComma();
+    }
+    this.consume('RPAREN');
     return { type: 'MultiPolygon', coordinates: polys };
   }
 
@@ -323,11 +342,9 @@ export class WKTParser {
   private parseCoordinatesList(): Position[] {
     this.consume('LPAREN');
     const coords: Position[] = [];
-    while (this.peek().type !== 'RPAREN' && this.peek().type !== 'EOF') {
+    while (!this.isDone()) {
       coords.push(this.parseCoordinates());
-      if (this.peek().type === 'COMMA') {
-        this.advance();
-      }
+      this.skipComma();
     }
     this.consume('RPAREN');
     return coords;
@@ -340,21 +357,6 @@ export class WKTParser {
     const lists: Position[][] = [];
     while (this.peek().type !== 'RPAREN' && this.peek().type !== 'EOF') {
       lists.push(this.parseCoordinatesList());
-      if (this.peek().type === 'COMMA') {
-        this.advance();
-      }
-    }
-    this.consume('RPAREN');
-    return lists;
-  }
-
-  /** 解析多边形列表（MultiPolygon 级别）：( ((...)), ((...)) ) */
-  private parseCoordinateListListList(): Position[][][] {
-    if (this.peek().type !== 'LPAREN') return [];
-    this.advance(); // consume outer (
-    const lists: Position[][][] = [];
-    while (this.peek().type !== 'RPAREN' && this.peek().type !== 'EOF') {
-      lists.push(this.parseCoordinateListList());
       if (this.peek().type === 'COMMA') {
         this.advance();
       }

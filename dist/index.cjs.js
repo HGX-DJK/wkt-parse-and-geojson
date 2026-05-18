@@ -94,6 +94,15 @@ class WKTParser {
         }
         return this.advance();
     }
+    skipComma() {
+        if (this.peek().type === 'COMMA') {
+            this.advance();
+        }
+    }
+    isDone() {
+        const t = this.peek();
+        return t.type === 'RPAREN' || t.type === 'EOF';
+    }
     parseGeometry() {
         const token = this.peek();
         if (token.type !== 'WORD') {
@@ -166,7 +175,13 @@ class WKTParser {
         if (this.isEmptyGeometry()) {
             return { type: 'Polygon', coordinates: [] };
         }
-        const rings = this.parseCoordinateListList();
+        this.consume('LPAREN');
+        const rings = [];
+        while (!this.isDone()) {
+            rings.push(this.parseCoordinatesList());
+            this.skipComma();
+        }
+        this.consume('RPAREN');
         return { type: 'Polygon', coordinates: rings };
     }
     // ── MULTIPOINT ───────────────────────────────────────────────────
@@ -178,7 +193,7 @@ class WKTParser {
         }
         this.advance(); // consume outer (
         const coords = [];
-        while (this.peek().type !== 'RPAREN' && this.peek().type !== 'EOF') {
+        while (!this.isDone()) {
             if (this.peek().type === 'LPAREN') {
                 // 标准写法: MULTIPOINT ((x y), (x y))
                 this.advance(); // consume (
@@ -189,9 +204,7 @@ class WKTParser {
                 // 非标准写法: MULTIPOINT (x y, x y)
                 coords.push(this.parseCoordinates());
             }
-            if (this.peek().type === 'COMMA') {
-                this.advance();
-            }
+            this.skipComma();
         }
         this.consume('RPAREN');
         return { type: 'MultiPoint', coordinates: coords };
@@ -205,11 +218,9 @@ class WKTParser {
         }
         this.advance(); // consume outer (
         const lines = [];
-        while (this.peek().type !== 'RPAREN' && this.peek().type !== 'EOF') {
+        while (!this.isDone()) {
             lines.push(this.parseCoordinatesList());
-            if (this.peek().type === 'COMMA') {
-                this.advance();
-            }
+            this.skipComma();
         }
         this.consume('RPAREN');
         return { type: 'MultiLineString', coordinates: lines };
@@ -221,7 +232,13 @@ class WKTParser {
         if (this.isEmptyGeometry()) {
             return { type: 'MultiPolygon', coordinates: [] };
         }
-        const polys = this.parseCoordinateListListList();
+        this.consume('LPAREN');
+        const polys = [];
+        while (!this.isDone()) {
+            polys.push(this.parseCoordinateListList());
+            this.skipComma();
+        }
+        this.consume('RPAREN');
         return { type: 'MultiPolygon', coordinates: polys };
     }
     // ── GEOMETRYCOLLECTION ───────────────────────────────────────────
@@ -270,11 +287,9 @@ class WKTParser {
     parseCoordinatesList() {
         this.consume('LPAREN');
         const coords = [];
-        while (this.peek().type !== 'RPAREN' && this.peek().type !== 'EOF') {
+        while (!this.isDone()) {
             coords.push(this.parseCoordinates());
-            if (this.peek().type === 'COMMA') {
-                this.advance();
-            }
+            this.skipComma();
         }
         this.consume('RPAREN');
         return coords;
@@ -287,21 +302,6 @@ class WKTParser {
         const lists = [];
         while (this.peek().type !== 'RPAREN' && this.peek().type !== 'EOF') {
             lists.push(this.parseCoordinatesList());
-            if (this.peek().type === 'COMMA') {
-                this.advance();
-            }
-        }
-        this.consume('RPAREN');
-        return lists;
-    }
-    /** 解析多边形列表（MultiPolygon 级别）：( ((...)), ((...)) ) */
-    parseCoordinateListListList() {
-        if (this.peek().type !== 'LPAREN')
-            return [];
-        this.advance(); // consume outer (
-        const lists = [];
-        while (this.peek().type !== 'RPAREN' && this.peek().type !== 'EOF') {
-            lists.push(this.parseCoordinateListList());
             if (this.peek().type === 'COMMA') {
                 this.advance();
             }

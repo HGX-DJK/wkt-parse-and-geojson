@@ -17,6 +17,7 @@ export default defineConfig({
       file: 'dist/index.umd.js',
       format: 'umd',
       name: 'WKTGeoJSON',
+      exports: 'named',
     },
   ],
   plugins: [

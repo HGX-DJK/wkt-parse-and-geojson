@@ -21,11 +21,7 @@ export default defineConfig({
     },
   ],
   plugins: [
-    typescript({
-      declaration: true,
-      declarationDir: './dist',
-      rootDir: './src',
-    }),
+    typescript(),
   ],
   treeshake: true,
 });

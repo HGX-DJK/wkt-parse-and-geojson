@@ -67,7 +67,6 @@ npm run typecheck
 | `dist/index.esm.js` | ES Module | 浏览器 / 现代打包工具 |
 | `dist/index.cjs.js` | CommonJS | Node.js |
 | `dist/index.umd.js` | UMD | `<script>` 标签直接引入 |
-| `dist/index.d.ts` | TypeScript 声明 | IDE 类型提示 |
 
 ---
 

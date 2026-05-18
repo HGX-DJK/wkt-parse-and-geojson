@@ -1,9 +1,12 @@
 'use strict';
 
+Object.defineProperty(exports, '__esModule', { value: true });
+
 var types = /*#__PURE__*/Object.freeze({
     __proto__: null
 });
 
+// Precompiled regex for better performance
 const RE_WHITESPACE = /\s/;
 const RE_NUMBER_START = /[0-9\-]/;
 const RE_NUMBER_BODY = /[0-9\.\-eE\+]/;
@@ -29,6 +32,7 @@ class Lexer {
         return RE_NUMBER_BODY.test(c);
     }
     nextToken() {
+        // skip whitespace
         while (this.pos < this.input.length && this.isWhitespace(this.peek())) {
             this.advance();
         }
@@ -48,6 +52,7 @@ class Lexer {
             this.advance();
             return { type: 'COMMA', value: ',' };
         }
+        // Number: starts with digit or minus
         if (this.isNumberStart(c)) {
             const start = this.pos;
             while (this.pos < this.input.length && this.isNumberBody(this.peek())) {
@@ -55,6 +60,7 @@ class Lexer {
             }
             return { type: 'NUMBER', value: this.input.slice(start, this.pos) };
         }
+        // Word (geometry type or EMPTY/Z/M keyword)
         const start = this.pos;
         while (this.pos < this.input.length && RE_WORD_CHAR.test(this.peek())) {
             this.pos++;
@@ -78,6 +84,7 @@ class WKTParser {
         }
         this.tokens.push({ type: 'EOF', value: '' });
         const geometry = this.parseGeometry();
+        // 校验尾部无多余字符（防止静默忽略垃圾输入）
         if (this.peek().type !== 'EOF') {
             throw new Error(`Unexpected trailing token after geometry: "${this.peek().value}"`);
         }
@@ -89,6 +96,7 @@ class WKTParser {
     advance() {
         return this.tokens[this.pos++];
     }
+    /** 消费当前 token 并返回，若类型不匹配则抛出错误 */
     consume(type) {
         const token = this.peek();
         if (token.type !== type) {
@@ -129,12 +137,14 @@ class WKTParser {
                 throw new Error(`Unknown geometry type: ${token.value}`);
         }
     }
+    // ── 消费可选的维度修饰符（Z / M / ZM）
     skipDimensionKeyword() {
         const t = this.peek();
         if (t.type === 'WORD' && (t.value === 'Z' || t.value === 'M' || t.value === 'ZM')) {
             this.advance();
         }
     }
+    // ── 判断并消费 EMPTY 关键字
     isEmptyGeometry() {
         const t = this.peek();
         if (t.type === 'WORD' && t.value === 'EMPTY') {
@@ -143,10 +153,13 @@ class WKTParser {
         }
         return false;
     }
+    // ── POINT ────────────────────────────────────────────────────────
     parsePoint() {
-        this.advance();
+        this.advance(); // consume POINT
         this.skipDimensionKeyword();
         if (this.isEmptyGeometry()) {
+            // GeoJSON 无法表示空点：POINT EMPTY 在 GeoJSON 中应用 null geometry Feature，
+            // 此处直接抛出，由调用方决定如何处理。
             throw new Error('POINT EMPTY cannot be represented as a GeoJSON Point. ' +
                 'Consider using wktToFeature() and checking Feature.geometry === null.');
         }
@@ -155,8 +168,9 @@ class WKTParser {
         this.consume('RPAREN');
         return { type: 'Point', coordinates: coords };
     }
+    // ── LINESTRING ───────────────────────────────────────────────────
     parseLineString() {
-        this.advance();
+        this.advance(); // consume LINESTRING
         this.skipDimensionKeyword();
         if (this.isEmptyGeometry()) {
             return { type: 'LineString', coordinates: [] };
@@ -164,8 +178,9 @@ class WKTParser {
         const coords = this.parseCoordinatesList();
         return { type: 'LineString', coordinates: coords };
     }
+    // ── POLYGON ──────────────────────────────────────────────────────
     parsePolygon() {
-        this.advance();
+        this.advance(); // consume POLYGON
         this.skipDimensionKeyword();
         if (this.isEmptyGeometry()) {
             return { type: 'Polygon', coordinates: [] };
@@ -179,21 +194,24 @@ class WKTParser {
         this.consume('RPAREN');
         return { type: 'Polygon', coordinates: rings };
     }
+    // ── MULTIPOINT ───────────────────────────────────────────────────
     parseMultiPoint() {
-        this.advance();
+        this.advance(); // consume MULTIPOINT
         this.skipDimensionKeyword();
         if (this.isEmptyGeometry() || this.peek().type !== 'LPAREN') {
             return { type: 'MultiPoint', coordinates: [] };
         }
-        this.advance();
+        this.advance(); // consume outer (
         const coords = [];
         while (!this.isDone()) {
             if (this.peek().type === 'LPAREN') {
-                this.advance();
+                // 标准写法: MULTIPOINT ((x y), (x y))
+                this.advance(); // consume (
                 coords.push(this.parseCoordinates());
                 this.consume('RPAREN');
             }
             else {
+                // 非标准写法: MULTIPOINT (x y, x y)
                 coords.push(this.parseCoordinates());
             }
             this.skipComma();
@@ -201,13 +219,14 @@ class WKTParser {
         this.consume('RPAREN');
         return { type: 'MultiPoint', coordinates: coords };
     }
+    // ── MULTILINESTRING ──────────────────────────────────────────────
     parseMultiLineString() {
-        this.advance();
+        this.advance(); // consume MULTILINESTRING
         this.skipDimensionKeyword();
         if (this.isEmptyGeometry() || this.peek().type !== 'LPAREN') {
             return { type: 'MultiLineString', coordinates: [] };
         }
-        this.advance();
+        this.advance(); // consume outer (
         const lines = [];
         while (!this.isDone()) {
             lines.push(this.parseCoordinatesList());
@@ -216,8 +235,9 @@ class WKTParser {
         this.consume('RPAREN');
         return { type: 'MultiLineString', coordinates: lines };
     }
+    // ── MULTIPOLYGON ─────────────────────────────────────────────────
     parseMultiPolygon() {
-        this.advance();
+        this.advance(); // consume MULTIPOLYGON
         this.skipDimensionKeyword();
         if (this.isEmptyGeometry()) {
             return { type: 'MultiPolygon', coordinates: [] };
@@ -231,13 +251,14 @@ class WKTParser {
         this.consume('RPAREN');
         return { type: 'MultiPolygon', coordinates: polys };
     }
+    // ── GEOMETRYCOLLECTION ───────────────────────────────────────────
     parseGeometryCollection() {
-        this.advance();
+        this.advance(); // consume GEOMETRYCOLLECTION
         this.skipDimensionKeyword();
         if (this.isEmptyGeometry() || this.peek().type !== 'LPAREN') {
             return { type: 'GeometryCollection', geometries: [] };
         }
-        this.advance();
+        this.advance(); // consume (
         const geometries = [];
         while (!this.isDone()) {
             geometries.push(this.parseGeometry());
@@ -246,6 +267,11 @@ class WKTParser {
         this.consume('RPAREN');
         return { type: 'GeometryCollection', geometries };
     }
+    // ── 坐标解析辅助方法 ──────────────────────────────────────────────
+    /**
+     * 读取一个坐标点（自动检测维度：X Y 或 X Y Z）
+     * 读完 X、Y 后，若下一个 token 仍是 NUMBER，则继续读 Z
+     */
     parseCoordinates() {
         const xStr = this.consume('NUMBER').value;
         const yStr = this.consume('NUMBER').value;
@@ -255,6 +281,7 @@ class WKTParser {
             throw new Error(`Invalid coordinate value: "${xStr}"`);
         if (isNaN(y))
             throw new Error(`Invalid coordinate value: "${yStr}"`);
+        // 动态检测 Z 坐标
         if (this.peek().type === 'NUMBER') {
             const zStr = this.advance().value;
             const z = parseFloat(zStr);
@@ -264,6 +291,7 @@ class WKTParser {
         }
         return [x, y];
     }
+    /** 解析带括号的坐标序列：( x y, x y, ... ) */
     parseCoordinatesList() {
         this.consume('LPAREN');
         const coords = [];
@@ -274,10 +302,11 @@ class WKTParser {
         this.consume('RPAREN');
         return coords;
     }
+    /** 解析环列表（Polygon 级别）：( (...), (...) ) */
     parseCoordinateListList() {
         if (this.peek().type !== 'LPAREN')
             return [];
-        this.advance();
+        this.advance(); // consume outer (
         const lists = [];
         while (!this.isDone()) {
             lists.push(this.parseCoordinatesList());
@@ -287,17 +316,17 @@ class WKTParser {
         return lists;
     }
 }
+/** 将 WKT 字符串解析为 GeoJSON Geometry 对象 */
 function parse(wkt) {
     return WKT_PARSER.parse(wkt);
 }
+// 单例实例
 const WKT_PARSER = new WKTParser();
 
-var wktParser = /*#__PURE__*/Object.freeze({
-    __proto__: null,
-    WKTParser: WKTParser,
-    parse: parse
-});
-
+/**
+ * 将坐标数值格式化为字符串，避免科学计数法（WKT 不支持）。
+ * 例：1e-7 → "0.0000001"，1.50000 → "1.5"，1.0 → "1"
+ */
 function formatNumber(v) {
     if (v % 1 !== 0) {
         return Number(v.toFixed(15)).toString();
@@ -310,24 +339,29 @@ function positionToWkt(pos) {
 function coordsToWkt(coords) {
     return coords.map(positionToWkt).join(', ');
 }
+// 检查坐标是否包含 Z（3个分量）
 function hasZ(coordinates) {
     if (!Array.isArray(coordinates))
         return false;
     if (coordinates.length === 0)
         return false;
     const first = coordinates[0];
+    // Point: coordinates[0] 是数字，不是数组
     if (typeof first === 'number') {
         return coordinates.length === 3;
     }
+    // LineString/MultiPoint: coordinates[0] 是 Position（数字数组）
     if (Array.isArray(first) && typeof first[0] === 'number') {
         return first.length === 3;
     }
+    // Polygon/MultiLineString: coordinates[0] 是 Position[]（线的数组）
     if (Array.isArray(first) && Array.isArray(first[0])) {
         const firstRing = first;
         return firstRing.length > 0 && firstRing[0].length === 3;
     }
     return false;
 }
+// 获取 Z 后缀字符串
 function zSuffix(coordinates) {
     return hasZ(coordinates) ? ' Z' : '';
 }
@@ -366,6 +400,10 @@ class WKTBuilder {
         const ringStr = geom.coordinates.map(ring => `(${coordsToWkt(ring)})`).join(', ');
         return `POLYGON${zSuffix(geom.coordinates)} (${ringStr})`;
     }
+    /**
+     * 按 OGC/ISO WKT 标准，MULTIPOINT 每个点用括号包裹：
+     * MULTIPOINT ((0 0), (1 1), (2 2))
+     */
     buildMultiPoint(geom) {
         if (geom.coordinates.length === 0)
             return 'MULTIPOINT EMPTY';
@@ -394,22 +432,22 @@ class WKTBuilder {
         return `GEOMETRYCOLLECTION (${geoms})`;
     }
 }
+/** 将 GeoJSON Geometry 对象转换为 WKT 字符串 */
 function build(geometry) {
     return WKT_BUILDER.build(geometry);
 }
+// 单例实例，避免重复创建
 const WKT_BUILDER = new WKTBuilder();
 
-var wktBuilder = /*#__PURE__*/Object.freeze({
-    __proto__: null,
-    WKTBuilder: WKTBuilder,
-    build: build
-});
-
+// ─── 内部工具：判断是否为 Position（[number, number] 或 [number, number, number]）
 function isPosition(v) {
     return (Array.isArray(v) &&
         (v.length === 2 || v.length === 3) &&
         v.every((n) => typeof n === 'number'));
 }
+/**
+ * GeoJSON 几何对象构建器（类形式，方便组合使用）
+ */
 class GeoJSONBuilder {
     createPoint(x, y, z) {
         return z !== undefined
@@ -419,75 +457,158 @@ class GeoJSONBuilder {
     createLineString(coordinates) {
         return { type: 'LineString', coordinates };
     }
+    /**
+     * 创建 Polygon。
+     * - 传入 `Position[]`：视为单个外环，自动包装为 `[ring]`
+     * - 传入 `Position[][]`：视为完整的环列表（外环 + 内环/空洞）
+     */
     createPolygon(coordinates) {
         const rings = isPosition(coordinates[0])
-            ? [coordinates]
-            : coordinates;
+            ? [coordinates] // 单环：Position[] → Position[][]
+            : coordinates; // 多环：已是 Position[][]
         return { type: 'Polygon', coordinates: rings };
     }
+    /**
+     * 创建 MultiPoint。
+     * - 传入 `Position`：视为单个点，自动包装为 `[point]`
+     * - 传入 `Position[]`：视为多个点
+     */
     createMultiPoint(coordinates) {
         const pts = isPosition(coordinates)
-            ? [coordinates]
-            : coordinates;
+            ? [coordinates] // 单点：Position → Position[]
+            : coordinates; // 多点：已是 Position[]
         return { type: 'MultiPoint', coordinates: pts };
     }
+    /**
+     * 创建 MultiLineString。
+     * - 传入 `Position[]`：视为单条线，自动包装为 `[line]`
+     * - 传入 `Position[][]`：视为多条线
+     */
     createMultiLineString(coordinates) {
         const lines = isPosition(coordinates[0])
-            ? [coordinates]
-            : coordinates;
+            ? [coordinates] // 单线：Position[] → Position[][]
+            : coordinates; // 多线：已是 Position[][]
         return { type: 'MultiLineString', coordinates: lines };
     }
+    /**
+     * 创建 MultiPolygon。
+     * - 传入 `Position[][]`：视为单个多边形（环列表），自动包装为 `[polygon]`
+     * - 传入 `Position[][][]`：视为多个多边形
+     */
     createMultiPolygon(coordinates) {
+        // 判断：若第一个元素是 Position[]（环），则整体是单个 polygon
         const firstElem = coordinates[0];
         const isSinglePolygon = Array.isArray(firstElem) && Array.isArray(firstElem[0]) && isPosition(firstElem[0]);
         const polys = isSinglePolygon
-            ? [coordinates]
-            : coordinates;
+            ? [coordinates] // 单多边形：Position[][] → Position[][][]
+            : coordinates; // 多多边形：已是 Position[][][]
         return { type: 'MultiPolygon', coordinates: polys };
     }
+    /**
+     * 创建 GeometryCollection。
+     * - 传入单个 `Geometry`：自动包装为 `[geometry]`
+     * - 传入 `Geometry[]`：直接使用
+     */
     createGeometryCollection(geometries) {
         const geoms = Array.isArray(geometries) ? geometries : [geometries];
         return { type: 'GeometryCollection', geometries: geoms };
     }
 }
+// 单例，避免重复实例化
 const _builder = new GeoJSONBuilder();
+/** 创建 Point */
 function createPoint(x, y, z) {
     return _builder.createPoint(x, y, z);
 }
+/** 创建 LineString */
 function createLineString(coordinates) {
     return _builder.createLineString(coordinates);
 }
+/**
+ * 创建 Polygon。
+ * - 传入 `Position[]`：单个外环，自动包装
+ * - 传入 `Position[][]`：外环 + 内环（空洞）
+ *
+ * @example
+ * createPolygon([[0,0],[1,0],[1,1],[0,1],[0,0]])
+ * createPolygon([[[0,0],[10,0],[10,10],[0,10],[0,0]], [[2,2],[4,2],[4,4],[2,4],[2,2]]])
+ */
 function createPolygon(coordinates) {
     return _builder.createPolygon(coordinates);
 }
+/**
+ * 创建 MultiPoint。
+ * - 传入 `Position`：单个点
+ * - 传入 `Position[]`：多个点
+ *
+ * @example
+ * createMultiPoint([0, 0])
+ * createMultiPoint([[0,0],[1,1],[2,2]])
+ */
 function createMultiPoint(coordinates) {
     return _builder.createMultiPoint(coordinates);
 }
+/**
+ * 创建 MultiLineString。
+ * - 传入 `Position[]`：单条线
+ * - 传入 `Position[][]`：多条线
+ *
+ * @example
+ * createMultiLineString([[0,0],[1,1]])
+ * createMultiLineString([[[0,0],[1,1]], [[2,2],[3,3]]])
+ */
 function createMultiLineString(coordinates) {
     return _builder.createMultiLineString(coordinates);
 }
+/**
+ * 创建 MultiPolygon。
+ * - 传入 `Position[][]`：单个多边形（环列表）
+ * - 传入 `Position[][][]`：多个多边形
+ *
+ * @example
+ * createMultiPolygon([[[0,0],[1,0],[1,1],[0,1],[0,0]]])
+ * createMultiPolygon([[[[0,0],[1,0],[1,1],[0,1],[0,0]]], [[[2,2],[3,2],[3,3],[2,3],[2,2]]]])
+ */
 function createMultiPolygon(coordinates) {
     return _builder.createMultiPolygon(coordinates);
 }
+/**
+ * 创建 GeometryCollection。
+ * - 传入单个 `Geometry`：自动包装
+ * - 传入 `Geometry[]`：直接使用
+ *
+ * @example
+ * createGeometryCollection(createPoint(0, 0))
+ * createGeometryCollection([createPoint(0,0), createLineString([[0,0],[1,1]])])
+ */
 function createGeometryCollection(geometries) {
     return _builder.createGeometryCollection(geometries);
 }
 
-var geojsonBuilder = /*#__PURE__*/Object.freeze({
-    __proto__: null,
-    GeoJSONBuilder: GeoJSONBuilder,
-    createGeometryCollection: createGeometryCollection,
-    createLineString: createLineString,
-    createMultiLineString: createMultiLineString,
-    createMultiPoint: createMultiPoint,
-    createMultiPolygon: createMultiPolygon,
-    createPoint: createPoint,
-    createPolygon: createPolygon
-});
-
+/**
+ * 将 WKT 字符串转换为 GeoJSON Geometry 对象。
+ *
+ * @example
+ * wktToGeoJSON('POINT (30.5 40.5)')
+ * // → { type: 'Point', coordinates: [30.5, 40.5] }
+ *
+ * wktToGeoJSON('POLYGON ((0 0, 1 0, 1 1, 0 1, 0 0))')
+ * // → { type: 'Polygon', coordinates: [[[0,0],[1,0],[1,1],[0,1],[0,0]]] }
+ */
 function wktToGeoJSON(wkt) {
     return parse(wkt);
 }
+/**
+ * 将 WKT 字符串转换为 GeoJSON Feature 对象。
+ *
+ * @param wkt       WKT 字符串
+ * @param properties 可选的 Feature 属性对象
+ * @param id         可选的 Feature ID
+ *
+ * @example
+ * wktToFeature('POINT (30.5 40.5)', { name: '北京' })
+ * // → { type: 'Feature', geometry: { type: 'Point', ... }, properties: { name: '北京' } }
+ */
 function wktToFeature(wkt, properties = null, id) {
     const geometry = parse(wkt);
     const feature = {
@@ -500,27 +621,58 @@ function wktToFeature(wkt, properties = null, id) {
     }
     return feature;
 }
+/**
+ * 将多个 WKT 字符串批量转换为 GeoJSON FeatureCollection。
+ *
+ * @param wkts        WKT 字符串数组
+ * @param properties  可选，每个 Feature 的属性数组（长度应与 wkts 一致）
+ *
+ * @example
+ * wktToFeatureCollection(['POINT (0 0)', 'POINT (1 1)'])
+ * // → { type: 'FeatureCollection', features: [...] }
+ */
 function wktToFeatureCollection(wkts, properties) {
     const features = wkts.map((wkt, i) => wktToFeature(wkt, properties ? (properties[i] ?? null) : null));
     return { type: 'FeatureCollection', features };
 }
 
-var wktToGeojson = /*#__PURE__*/Object.freeze({
-    __proto__: null,
-    wktToFeature: wktToFeature,
-    wktToFeatureCollection: wktToFeatureCollection,
-    wktToGeoJSON: wktToGeoJSON
-});
-
+/**
+ * 将 GeoJSON Geometry 对象转换为 WKT 字符串。
+ *
+ * @example
+ * geojsonToWkt({ type: 'Point', coordinates: [30.5, 40.5] })
+ * // → 'POINT (30.5 40.5)'
+ *
+ * geojsonToWkt({ type: 'Polygon', coordinates: [[[0,0],[1,0],[1,1],[0,1],[0,0]]] })
+ * // → 'POLYGON ((0 0, 1 0, 1 1, 0 1, 0 0))'
+ */
 function geojsonToWkt(geojson) {
     return build(geojson);
 }
+/**
+ * 将 GeoJSON Feature 对象转换为 WKT 字符串（取 geometry 部分）。
+ *
+ * @throws 若 Feature.geometry 为 null，则抛出错误
+ *
+ * @example
+ * featureToWkt({ type: 'Feature', geometry: { type: 'Point', coordinates: [0, 0] }, properties: null })
+ * // → 'POINT (0 0)'
+ */
 function featureToWkt(feature) {
     if (!feature.geometry) {
         throw new Error('Feature.geometry is null, cannot convert to WKT');
     }
     return build(feature.geometry);
 }
+/**
+ * 将 GeoJSON FeatureCollection 中所有 Feature 转换为 WKT 字符串数组。
+ *
+ * geometry 为 null 的 Feature 会被跳过（返回数组中对应位置为 null）。
+ *
+ * @example
+ * featureCollectionToWkt({ type: 'FeatureCollection', features: [...] })
+ * // → ['POINT (0 0)', 'LINESTRING (0 0, 1 1)', ...]
+ */
 function featureCollectionToWkt(fc) {
     return fc.features.map((f) => {
         if (!f.geometry)
@@ -529,19 +681,17 @@ function featureCollectionToWkt(fc) {
     });
 }
 
-var geojsonToWkt$1 = /*#__PURE__*/Object.freeze({
-    __proto__: null,
-    featureCollectionToWkt: featureCollectionToWkt,
-    featureToWkt: featureToWkt,
-    geojsonToWkt: geojsonToWkt
-});
-
+// 预定义常量，避免重复创建
 const VALID_GEOMETRY_TYPES = [
     'Point', 'LineString', 'Polygon',
     'MultiPoint', 'MultiLineString', 'MultiPolygon',
     'GeometryCollection'
 ];
+// 预计算错误消息字符串
 const VALID_TYPES_MESSAGE = `Invalid geometry type. Must be one of: ${VALID_GEOMETRY_TYPES.join(', ')}`;
+/**
+ * 校验 WKT 字符串格式是否合法
+ */
 function validateWKT(wkt) {
     if (!wkt || typeof wkt !== 'string') {
         return { valid: false, error: 'WKT must be a non-empty string' };
@@ -558,11 +708,15 @@ function validateWKT(wkt) {
         return { valid: false, error: e.message };
     }
 }
+/**
+ * 校验 GeoJSON Geometry 对象是否合法
+ */
 function validateGeoJSON(geojson) {
     if (!geojson || typeof geojson !== 'object') {
         return { valid: false, error: 'GeoJSON must be an object' };
     }
     const obj = geojson;
+    // 检查 type 字段
     if (!obj.type || typeof obj.type !== 'string') {
         return { valid: false, error: 'GeoJSON must have a "type" property' };
     }
@@ -570,6 +724,7 @@ function validateGeoJSON(geojson) {
     if (!VALID_GEOMETRY_TYPES.includes(type)) {
         return { valid: false, error: VALID_TYPES_MESSAGE };
     }
+    // GeometryCollection 特殊处理
     if (type === 'GeometryCollection') {
         if (!obj.geometries || !Array.isArray(obj.geometries)) {
             return { valid: false, error: 'GeometryCollection must have a "geometries" array' };
@@ -582,9 +737,11 @@ function validateGeoJSON(geojson) {
         }
         return { valid: true };
     }
+    // 其他几何类型必须要有 coordinates
     if (obj.coordinates === undefined) {
         return { valid: false, error: `${type} must have "coordinates"` };
     }
+    // 校验坐标格式
     return validateCoordinates(type, obj.coordinates);
 }
 function validateCoordinates(type, coords) {
@@ -659,21 +816,28 @@ function validatePosition(pos) {
     }
     return { valid: true };
 }
+/**
+ * 尝试从可能不规范的 WKT 中恢复出有效结果
+ * 主要处理尾部多余字符的情况
+ */
 function tryFixWKT(wkt) {
     const trimmed = wkt.trim();
     if (!trimmed) {
         return { fixed: wkt, changed: false };
     }
+    // 先尝试直接解析，如果成功则不需要修复
     try {
         parse(trimmed);
         return { fixed: trimmed, changed: false };
     }
     catch {
+        // 解析失败，尝试修复
     }
+    // 尝试找到最后一个有效的 geometry 结束位置
     const patterns = [
-        /\)\s*[A-Z]/i,
-        /EMPTY\s+[A-Z]/i,
-        /\)\s*$/,
+        /\)\s*[A-Z]/i, // 括号后跟字母 (如 POLYGON ((...)) POINT )
+        /EMPTY\s+[A-Z]/i, // EMPTY 后跟字母
+        /\)\s*$/, // 括号结尾后有多余内容
     ];
     for (const pattern of patterns) {
         const match = trimmed.match(pattern);
@@ -684,9 +848,11 @@ function tryFixWKT(wkt) {
                 return { fixed, changed: true };
             }
             catch {
+                // 这个修复方案不行，尝试下一个
             }
         }
     }
+    // 尝试去除尾部垃圾字符
     const lastValidIndex = findLastValidPosition(trimmed);
     if (lastValidIndex > 0) {
         const fixed = trimmed.slice(0, lastValidIndex + 1);
@@ -695,6 +861,7 @@ function tryFixWKT(wkt) {
             return { fixed, changed: true };
         }
         catch {
+            // 修复失败
         }
     }
     return { fixed: wkt, changed: false };
@@ -708,6 +875,7 @@ function findLastValidPosition(wkt) {
         else if (c === '(')
             depth--;
         else if (c === ' ' && depth === 0 && /[A-Z]/.test(wkt.slice(i + 1))) {
+            // 如果空格后面是字母开头，可能是垃圾字符的起点
             if (wkt.slice(0, i).trimEnd().match(/[A-Z]\s*$/)) {
                 return i - 1;
             }
@@ -715,12 +883,19 @@ function findLastValidPosition(wkt) {
     }
     return wkt.length - 1;
 }
+/**
+ * 深度克隆 GeoJSON 对象（用于避免意外修改原对象）
+ */
 function cloneGeometry(geometry) {
     return JSON.parse(JSON.stringify(geometry));
 }
+/**
+ * 判断两个几何对象是否相等（坐标对比）
+ */
 function geometryEquals(a, b) {
     if (a.type !== b.type)
         return false;
+    // Point 比较最常见，单独优化
     if (a.type === 'Point') {
         const aCoords = a.coordinates;
         const bCoords = b.coordinates;
@@ -729,30 +904,36 @@ function geometryEquals(a, b) {
             aCoords[1] === bCoords[1] &&
             (aCoords.length === 2 || aCoords[2] === bCoords[2]);
     }
+    // 其他类型使用 JSON.stringify 比较
     return JSON.stringify(a) === JSON.stringify(b);
 }
 
-var validate = /*#__PURE__*/Object.freeze({
-    __proto__: null,
-    cloneGeometry: cloneGeometry,
-    geometryEquals: geometryEquals,
-    tryFixWKT: tryFixWKT,
-    validateGeoJSON: validateGeoJSON,
-    validateWKT: validateWKT
-});
-
+// WKT 命名空间 - 用于默认导出
 const WKT = {
     ...types,
-    ...wktParser,
-    ...wktBuilder,
-    ...geojsonBuilder,
-    ...wktToGeojson,
-    ...geojsonToWkt$1,
-    ...validate,
+    parse,
+    build,
+    createPoint,
+    createLineString,
+    createPolygon,
+    createMultiPoint,
+    createMultiLineString,
+    createMultiPolygon,
+    createGeometryCollection,
+    wktToGeoJSON,
+    wktToFeature,
+    wktToFeatureCollection,
+    geojsonToWkt,
+    featureToWkt,
+    featureCollectionToWkt,
+    validateWKT,
+    validateGeoJSON,
+    tryFixWKT,
+    cloneGeometry,
+    geometryEquals,
 };
 
 exports.GeoJSONBuilder = GeoJSONBuilder;
-exports.WKT = WKT;
 exports.WKTBuilder = WKTBuilder;
 exports.WKTParser = WKTParser;
 exports.build = build;
@@ -764,6 +945,7 @@ exports.createMultiPoint = createMultiPoint;
 exports.createMultiPolygon = createMultiPolygon;
 exports.createPoint = createPoint;
 exports.createPolygon = createPolygon;
+exports.default = WKT;
 exports.featureCollectionToWkt = featureCollectionToWkt;
 exports.featureToWkt = featureToWkt;
 exports.geojsonToWkt = geojsonToWkt;

@@ -721,20 +721,30 @@ console.log(build(collection));
 
 ## 本地调试
 
-启动 HTTP 服务，在浏览器中测试 debug 页面：
+项目根目录提供两个测试页面：
+
+| 文件 | 用途 | 加载方式 |
+|------|------|----------|
+| `index-local.html` | 本地版本测试 | 使用本地 `dist/index.umd.js` |
+| `index-online.html` | 线上版本测试 | 使用 unpkg CDN 加载 npm 包 |
+
+启动本地 HTTP 服务后打开对应页面：
 
 ```bash
-# 方式一：npx serve
-npx serve debug
+# 方式一：npx serve（推荐）
+npx serve .
 
 # 方式二：Python
-cd debug && python -m http.server 8080
+python -m http.server 8080
 
 # 方式三：http-server
-npx http-server debug -p 8080
+npx http-server -p 8080
 ```
 
-然后访问 `http://localhost:8080/index.html`，即可在页面中交互测试所有 API。
+访问 `http://localhost:8080/index-local.html` 测试本地构建版本。
+访问 `http://localhost:8080/index-online.html` 测试线上 npm 版本。
+
+**提示**：本地测试前需先运行 `npm run build` 构建项目。
 
 ---
 

@@ -21,6 +21,7 @@
   - [featureToWkt(feature)](#7-featuretowktfeature)
   - [featureCollectionToWkt(fc)](#8-featurecollectiontowktfc)
   - [GeoJSON 工厂方法](#9-geojson-工厂方法)
+  - [校验工具](#10-校验工具)
 - [类型定义](#类型定义)
 - [注意事项与边界行为](#注意事项与边界行为)
 - [本地调试](#本地调试)
@@ -476,6 +477,84 @@ createGeometryCollection([
   createPolygon([[0,0],[10,0],[10,10],[0,10],[0,0]])
 ])
 // → { type: 'GeometryCollection', geometries: [...] }
+```
+
+---
+
+## 10. 校验工具
+
+### `validateWKT(wkt)`
+
+校验 WKT 字符串格式是否合法。
+
+```javascript
+import { validateWKT } from 'wkt-parse-and-geojson';
+
+validateWKT('POINT (30.5 40.5)')
+// → { valid: true }
+
+validateWKT('POINT EMPTY')
+// → { valid: false, error: 'POINT EMPTY cannot be represented...' }
+
+validateWKT('INVALID WKT')
+// → { valid: false, error: 'Unknown geometry type: INVALID' }
+```
+
+### `validateGeoJSON(geojson)`
+
+校验 GeoJSON Geometry 对象是否合法。
+
+```javascript
+import { validateGeoJSON } from 'wkt-parse-and-geojson';
+
+validateGeoJSON({ type: 'Point', coordinates: [30.5, 40.5] })
+// → { valid: true }
+
+validateGeoJSON({ type: 'Point' })
+// → { valid: false, error: 'Point must have "coordinates"' }
+
+validateGeoJSON({ type: 'InvalidType', coordinates: [] })
+// → { valid: false, error: 'Invalid geometry type: InvalidType...' }
+```
+
+### `tryFixWKT(wkt)`
+
+尝试修复不规范的 WKT 字符串（处理尾部多余字符）。
+
+```javascript
+import { tryFixWKT } from 'wkt-parse-and-geojson';
+
+tryFixWKT('POINT (30.5 40.5) garbage')
+// → { fixed: 'POINT (30.5 40.5)', changed: true }
+```
+
+### `cloneGeometry(geometry)`
+
+深度克隆几何对象，避免意外修改原对象。
+
+```javascript
+import { cloneGeometry } from 'wkt-parse-and-geojson';
+
+const original = { type: 'Point', coordinates: [0, 0] };
+const cloned = cloneGeometry(original);
+cloned.coordinates[0] = 100;
+// original.coordinates[0] === 0 (未改变)
+```
+
+### `geometryEquals(a, b)`
+
+判断两个几何对象是否相等。
+
+```javascript
+import { geometryEquals } from 'wkt-parse-and-geojson';
+
+const a = { type: 'Point', coordinates: [30.5, 40.5] };
+const b = { type: 'Point', coordinates: [30.5, 40.5] };
+geometryEquals(a, b)
+// → true
+
+geometryEquals(a, { type: 'Point', coordinates: [0, 0] })
+// → false
 ```
 
 ---

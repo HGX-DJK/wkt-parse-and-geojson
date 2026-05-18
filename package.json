@@ -14,7 +14,13 @@
     "dev": "rollup -c -w",
     "typecheck": "tsc --noEmit"
   },
-  "keywords": ["wkt", "geojson", "geometry", "parser", "gis"],
+  "keywords": [
+    "wkt",
+    "geojson",
+    "geometry",
+    "parser",
+    "gis"
+  ],
   "author": "",
   "license": "MIT",
   "devDependencies": {
@@ -22,5 +28,8 @@
     "rollup": "^4.40.0",
     "tslib": "^2.8.1",
     "typescript": "^5.8.3"
+  },
+  "dependencies": {
+    "wkt-parse-and-geojson": "^1.0.0"
   }
 }

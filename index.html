@@ -777,25 +777,14 @@ POINT (10 10)</textarea>
     </div>
   </div>
 
-  <script src="../dist/index.umd.js"></script>
-  <script type="module">
-    import {
-      parse,
-      build,
-      wktToGeoJSON,
-      wktToFeature,
-      wktToFeatureCollection,
-      geojsonToWkt,
-      featureToWkt,
-      featureCollectionToWkt,
-      createPoint,
-      createLineString,
-      createPolygon,
-      createMultiPoint,
-      createMultiLineString,
-      createMultiPolygon,
-      createGeometryCollection
-    } from '../dist/index.esm.js';
+ <script src="https://unpkg.com/wkt-parse-and-geojson/dist/index.umd.js"></script>
+  <script>
+    // 直接使用全局变量 WKTGeoJSON
+    const { parse, build, wktToGeoJSON, wktToFeature, wktToFeatureCollection,
+            geojsonToWkt, featureToWkt, featureCollectionToWkt,
+            createPoint, createLineString, createPolygon,
+            createMultiPoint, createMultiLineString, createMultiPolygon,
+            createGeometryCollection } = WKTGeoJSON;
 
     // Make functions available globally
     window.parse = parse;

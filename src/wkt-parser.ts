@@ -17,6 +17,12 @@ interface Token {
   value: string;
 }
 
+// Precompiled regex for better performance
+const RE_WHITESPACE = /\s/;
+const RE_NUMBER_START = /[0-9\-]/;
+const RE_NUMBER_BODY = /[0-9\.\-eE\+]/;
+const RE_WORD_CHAR = /[a-zA-Z_]/;
+
 class Lexer {
   private pos = 0;
   private input: string;
@@ -34,16 +40,15 @@ class Lexer {
   }
 
   private isWhitespace(c: string): boolean {
-    return /\s/.test(c);
+    return RE_WHITESPACE.test(c);
   }
 
-  /** 数字开头字符：数字 或 负号 */
   private isNumberStart(c: string): boolean {
-    return /[0-9\-]/.test(c);
+    return RE_NUMBER_START.test(c);
   }
 
   private isNumberBody(c: string): boolean {
-    return /[0-9\.\-eE\+]/.test(c);
+    return RE_NUMBER_BODY.test(c);
   }
 
   nextToken(): Token {
@@ -73,19 +78,19 @@ class Lexer {
 
     // Number: starts with digit or minus
     if (this.isNumberStart(c)) {
-      let num = '';
+      const start = this.pos;
       while (this.pos < this.input.length && this.isNumberBody(this.peek())) {
-        num += this.advance();
+        this.pos++;
       }
-      return { type: 'NUMBER', value: num };
+      return { type: 'NUMBER', value: this.input.slice(start, this.pos) };
     }
 
     // Word (geometry type or EMPTY/Z/M keyword)
-    let word = '';
-    while (this.pos < this.input.length && /[a-zA-Z_]/.test(this.peek())) {
-      word += this.advance();
+    const start = this.pos;
+    while (this.pos < this.input.length && RE_WORD_CHAR.test(this.peek())) {
+      this.pos++;
     }
-    return { type: 'WORD', value: word.toUpperCase() };
+    return { type: 'WORD', value: this.input.slice(start, this.pos).toUpperCase() };
   }
 }
 
@@ -305,11 +310,9 @@ export class WKTParser {
     this.advance(); // consume (
     const geometries: Geometry[] = [];
 
-    while (this.peek().type !== 'RPAREN' && this.peek().type !== 'EOF') {
+    while (!this.isDone()) {
       geometries.push(this.parseGeometry());
-      if (this.peek().type === 'COMMA') {
-        this.advance();
-      }
+      this.skipComma();
     }
     this.consume('RPAREN');
     return { type: 'GeometryCollection', geometries };
@@ -355,11 +358,9 @@ export class WKTParser {
     if (this.peek().type !== 'LPAREN') return [];
     this.advance(); // consume outer (
     const lists: Position[][] = [];
-    while (this.peek().type !== 'RPAREN' && this.peek().type !== 'EOF') {
+    while (!this.isDone()) {
       lists.push(this.parseCoordinatesList());
-      if (this.peek().type === 'COMMA') {
-        this.advance();
-      }
+      this.skipComma();
     }
     this.consume('RPAREN');
     return lists;

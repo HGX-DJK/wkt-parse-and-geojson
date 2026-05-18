@@ -431,8 +431,10 @@ class WKTBuilder {
 }
 /** 将 GeoJSON Geometry 对象转换为 WKT 字符串 */
 function build(geometry) {
-    return new WKTBuilder().build(geometry);
+    return WKT_BUILDER.build(geometry);
 }
+// 单例实例，避免重复创建
+const WKT_BUILDER = new WKTBuilder();
 
 var wktBuilder = /*#__PURE__*/Object.freeze({
     __proto__: null,
@@ -708,6 +710,12 @@ var geojsonToWkt$1 = /*#__PURE__*/Object.freeze({
     geojsonToWkt: geojsonToWkt
 });
 
+// 预定义常量，避免重复创建
+const VALID_GEOMETRY_TYPES = [
+    'Point', 'LineString', 'Polygon',
+    'MultiPoint', 'MultiLineString', 'MultiPolygon',
+    'GeometryCollection'
+];
 /**
  * 校验 WKT 字符串格式是否合法
  */
@@ -740,13 +748,8 @@ function validateGeoJSON(geojson) {
         return { valid: false, error: 'GeoJSON must have a "type" property' };
     }
     const type = obj.type;
-    const validTypes = [
-        'Point', 'LineString', 'Polygon',
-        'MultiPoint', 'MultiLineString', 'MultiPolygon',
-        'GeometryCollection'
-    ];
-    if (!validTypes.includes(type)) {
-        return { valid: false, error: `Invalid geometry type: "${type}". Must be one of: ${validTypes.join(', ')}` };
+    if (!VALID_GEOMETRY_TYPES.includes(type)) {
+        return { valid: false, error: `Invalid geometry type: "${type}". Must be one of: ${VALID_GEOMETRY_TYPES.join(', ')}` };
     }
     // GeometryCollection 特殊处理
     if (type === 'GeometryCollection') {
@@ -891,7 +894,6 @@ function tryFixWKT(wkt) {
     return { fixed: wkt, changed: false };
 }
 function findLastValidPosition(wkt) {
-    // 从后往前找第一个有效的右括号位置
     let depth = 0;
     for (let i = wkt.length - 1; i >= 0; i--) {
         const c = wkt[i];
@@ -899,15 +901,9 @@ function findLastValidPosition(wkt) {
             depth++;
         else if (c === '(')
             depth--;
-        else if (c === ' ' && depth === 0 && i < wkt.length - 1) {
-            // 检查这个空格是否在有效位置
-            const afterSpace = wkt.slice(i + 1).trim();
-            if (!afterSpace)
-                continue;
-            if (!/^[A-Z]/.test(afterSpace))
-                continue;
-            // 如果空格后面是字母开头，可能是垃圾字符
-            if (i > 5 && /[A-Z]$/.test(wkt.slice(0, i).trim())) {
+        else if (c === ' ' && depth === 0 && /[A-Z]/.test(wkt.slice(i + 1))) {
+            // 如果空格后面是字母开头，可能是垃圾字符的起点
+            if (wkt.slice(0, i).trimEnd().match(/[A-Z]\s*$/)) {
                 return i - 1;
             }
         }
@@ -935,7 +931,7 @@ function geometryEquals(a, b) {
             aCoords[1] === bCoords[1] &&
             (aCoords.length === 2 || aCoords[2] === bCoords[2]);
     }
-    // 其他类型使用 JSON.stringify（缓存 key 优化可后续添加）
+    // 其他类型使用 JSON.stringify 比较
     return JSON.stringify(a) === JSON.stringify(b);
 }
 

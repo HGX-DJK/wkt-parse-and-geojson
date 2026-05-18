@@ -2,6 +2,13 @@ import { Geometry } from './types';
 import { parse } from './wkt-parser';
 import { build } from './wkt-builder';
 
+// 预定义常量，避免重复创建
+const VALID_GEOMETRY_TYPES = [
+  'Point', 'LineString', 'Polygon',
+  'MultiPoint', 'MultiLineString', 'MultiPolygon',
+  'GeometryCollection'
+] as const;
+
 export interface ValidationResult {
   valid: boolean;
   error?: string;
@@ -44,14 +51,9 @@ export function validateGeoJSON(geojson: unknown): ValidationResult {
   }
 
   const type = obj.type as string;
-  const validTypes = [
-    'Point', 'LineString', 'Polygon',
-    'MultiPoint', 'MultiLineString', 'MultiPolygon',
-    'GeometryCollection'
-  ];
 
-  if (!validTypes.includes(type)) {
-    return { valid: false, error: `Invalid geometry type: "${type}". Must be one of: ${validTypes.join(', ')}` };
+  if (!VALID_GEOMETRY_TYPES.includes(type as typeof VALID_GEOMETRY_TYPES[number])) {
+    return { valid: false, error: `Invalid geometry type: "${type}". Must be one of: ${VALID_GEOMETRY_TYPES.join(', ')}` };
   }
 
   // GeometryCollection 特殊处理
@@ -212,19 +214,14 @@ export function tryFixWKT(wkt: string): { fixed: string; changed: boolean } {
 }
 
 function findLastValidPosition(wkt: string): number {
-  // 从后往前找第一个有效的右括号位置
   let depth = 0;
   for (let i = wkt.length - 1; i >= 0; i--) {
     const c = wkt[i];
     if (c === ')') depth++;
     else if (c === '(') depth--;
-    else if (c === ' ' && depth === 0 && i < wkt.length - 1) {
-      // 检查这个空格是否在有效位置
-      const afterSpace = wkt.slice(i + 1).trim();
-      if (!afterSpace) continue;
-      if (!/^[A-Z]/.test(afterSpace)) continue;
-      // 如果空格后面是字母开头，可能是垃圾字符
-      if (i > 5 && /[A-Z]$/.test(wkt.slice(0, i).trim())) {
+    else if (c === ' ' && depth === 0 && /[A-Z]/.test(wkt.slice(i + 1))) {
+      // 如果空格后面是字母开头，可能是垃圾字符的起点
+      if (wkt.slice(0, i).trimEnd().match(/[A-Z]\s*$/)) {
         return i - 1;
       }
     }
@@ -255,6 +252,6 @@ export function geometryEquals(a: Geometry, b: Geometry): boolean {
            (aCoords.length === 2 || aCoords[2] === bCoords[2]);
   }
 
-  // 其他类型使用 JSON.stringify（缓存 key 优化可后续添加）
+  // 其他类型使用 JSON.stringify 比较
   return JSON.stringify(a) === JSON.stringify(b);
 }

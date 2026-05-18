@@ -123,5 +123,8 @@ export class WKTBuilder {
 
 /** 将 GeoJSON Geometry 对象转换为 WKT 字符串 */
 export function build(geometry: Geometry): string {
-  return new WKTBuilder().build(geometry);
+  return WKT_BUILDER.build(geometry);
 }
+
+// 单例实例，避免重复创建
+const WKT_BUILDER = new WKTBuilder();

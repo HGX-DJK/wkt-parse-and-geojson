@@ -168,10 +168,12 @@ export function tryFixWKT(wkt: string): { fixed: string; changed: boolean } {
     return { fixed: wkt, changed: false };
   }
 
-  // 检查是否有尾部多余字符
-  const result = validateWKT(trimmed);
-  if (result.valid) {
+  // 先尝试直接解析，如果成功则不需要修复
+  try {
+    parse(trimmed);
     return { fixed: trimmed, changed: false };
+  } catch {
+    // 解析失败，尝试修复
   }
 
   // 尝试找到最后一个有效的 geometry 结束位置
@@ -185,8 +187,11 @@ export function tryFixWKT(wkt: string): { fixed: string; changed: boolean } {
     const match = trimmed.match(pattern);
     if (match) {
       const fixed = trimmed.slice(0, match.index! + (match[0].match(/\)/)?.[0].length || 0));
-      if (validateWKT(fixed).valid) {
+      try {
+        parse(fixed);
         return { fixed, changed: true };
+      } catch {
+        // 这个修复方案不行，尝试下一个
       }
     }
   }
@@ -195,8 +200,11 @@ export function tryFixWKT(wkt: string): { fixed: string; changed: boolean } {
   const lastValidIndex = findLastValidPosition(trimmed);
   if (lastValidIndex > 0) {
     const fixed = trimmed.slice(0, lastValidIndex + 1);
-    if (validateWKT(fixed).valid) {
+    try {
+      parse(fixed);
       return { fixed, changed: true };
+    } catch {
+      // 修复失败
     }
   }
 
@@ -236,5 +244,17 @@ export function cloneGeometry<G extends Geometry>(geometry: G): G {
  */
 export function geometryEquals(a: Geometry, b: Geometry): boolean {
   if (a.type !== b.type) return false;
+
+  // Point 比较最常见，单独优化
+  if (a.type === 'Point') {
+    const aCoords = (a as { coordinates: number[] }).coordinates;
+    const bCoords = (b as { coordinates: number[] }).coordinates;
+    return aCoords.length === bCoords.length &&
+           aCoords[0] === bCoords[0] &&
+           aCoords[1] === bCoords[1] &&
+           (aCoords.length === 2 || aCoords[2] === bCoords[2]);
+  }
+
+  // 其他类型使用 JSON.stringify（缓存 key 优化可后续添加）
   return JSON.stringify(a) === JSON.stringify(b);
 }

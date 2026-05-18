@@ -32,3 +32,7 @@ export {
   geometryEquals,
   type ValidationResult,
 } from './validate';
+
+// 默认导出命名空间（避免命名冲突）
+// 使用方式: import WKT from 'wkt-parse-and-geojson';
+export { default as WKT } from './namespace';

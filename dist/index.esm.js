@@ -1,3 +1,7 @@
+var types = /*#__PURE__*/Object.freeze({
+    __proto__: null
+});
+
 // Precompiled regex for better performance
 const RE_WHITESPACE = /\s/;
 const RE_NUMBER_START = /[0-9\-]/;
@@ -314,22 +318,49 @@ function parse(wkt) {
     return parser.parse(wkt);
 }
 
+var wktParser = /*#__PURE__*/Object.freeze({
+    __proto__: null,
+    WKTParser: WKTParser,
+    parse: parse
+});
+
 /**
  * 将坐标数值格式化为字符串，避免科学计数法（WKT 不支持）。
  * 例：1e-7 → "0.0000001"，1.50000 → "1.5"，1.0 → "1"
  */
 function formatNumber(v) {
-    // 有小数则最多保留 15 位有效位，再去掉尾零
     if (v % 1 !== 0) {
-        return parseFloat(v.toFixed(15)).toString();
+        return Number(v.toFixed(15)).toString();
     }
-    return v.toFixed(0);
+    return String(v);
 }
 function positionToWkt(pos) {
     return pos.map(formatNumber).join(' ');
 }
 function coordsToWkt(coords) {
     return coords.map(positionToWkt).join(', ');
+}
+// 检查坐标是否包含 Z（3个分量）
+function hasZ(coordinates) {
+    if (!Array.isArray(coordinates))
+        return false;
+    if (coordinates.length === 0)
+        return false;
+    const first = coordinates[0];
+    if (Array.isArray(first)) {
+        if (typeof first[0] === 'number') {
+            return first.length === 3;
+        }
+        if (Array.isArray(first[0])) {
+            const firstRing = first;
+            return firstRing.length > 0 && firstRing[0].length === 3;
+        }
+    }
+    return false;
+}
+// 获取 Z 后缀字符串
+function zSuffix(coordinates) {
+    return hasZ(coordinates) ? ' Z' : '';
 }
 class WKTBuilder {
     build(geometry) {
@@ -353,21 +384,18 @@ class WKTBuilder {
         }
     }
     buildPoint(geom) {
-        const hasZ = geom.coordinates.length === 3;
-        return `POINT${hasZ ? ' Z' : ''} (${positionToWkt(geom.coordinates)})`;
+        return `POINT${zSuffix(geom.coordinates)} (${positionToWkt(geom.coordinates)})`;
     }
     buildLineString(geom) {
         if (geom.coordinates.length === 0)
             return 'LINESTRING EMPTY';
-        const hasZ = geom.coordinates[0].length === 3;
-        return `LINESTRING${hasZ ? ' Z' : ''} (${coordsToWkt(geom.coordinates)})`;
+        return `LINESTRING${zSuffix(geom.coordinates)} (${coordsToWkt(geom.coordinates)})`;
     }
     buildPolygon(geom) {
         if (geom.coordinates.length === 0)
             return 'POLYGON EMPTY';
-        const hasZ = geom.coordinates[0].length > 0 && geom.coordinates[0][0].length === 3;
         const ringStr = geom.coordinates.map(ring => `(${coordsToWkt(ring)})`).join(', ');
-        return `POLYGON${hasZ ? ' Z' : ''} (${ringStr})`;
+        return `POLYGON${zSuffix(geom.coordinates)} (${ringStr})`;
     }
     /**
      * 按 OGC/ISO WKT 标准，MULTIPOINT 每个点用括号包裹：
@@ -376,26 +404,23 @@ class WKTBuilder {
     buildMultiPoint(geom) {
         if (geom.coordinates.length === 0)
             return 'MULTIPOINT EMPTY';
-        const hasZ = geom.coordinates[0].length === 3;
         const pts = geom.coordinates.map(p => `(${positionToWkt(p)})`).join(', ');
-        return `MULTIPOINT${hasZ ? ' Z' : ''} (${pts})`;
+        return `MULTIPOINT${zSuffix(geom.coordinates)} (${pts})`;
     }
     buildMultiLineString(geom) {
         if (geom.coordinates.length === 0)
             return 'MULTILINESTRING EMPTY';
-        const hasZ = geom.coordinates[0].length > 0 && geom.coordinates[0][0].length === 3;
         const lines = geom.coordinates.map(line => `(${coordsToWkt(line)})`).join(', ');
-        return `MULTILINESTRING${hasZ ? ' Z' : ''} (${lines})`;
+        return `MULTILINESTRING${zSuffix(geom.coordinates)} (${lines})`;
     }
     buildMultiPolygon(geom) {
         if (geom.coordinates.length === 0)
             return 'MULTIPOLYGON EMPTY';
-        const hasZ = geom.coordinates[0].length > 0 && geom.coordinates[0][0].length > 0 && geom.coordinates[0][0][0].length === 3;
         const polys = geom.coordinates.map(poly => {
             const rings = poly.map(ring => `(${coordsToWkt(ring)})`).join(', ');
             return `(${rings})`;
         }).join(', ');
-        return `MULTIPOLYGON${hasZ ? ' Z' : ''} (${polys})`;
+        return `MULTIPOLYGON${zSuffix(geom.coordinates)} (${polys})`;
     }
     buildGeometryCollection(geom) {
         if (geom.geometries.length === 0)
@@ -408,6 +433,12 @@ class WKTBuilder {
 function build(geometry) {
     return new WKTBuilder().build(geometry);
 }
+
+var wktBuilder = /*#__PURE__*/Object.freeze({
+    __proto__: null,
+    WKTBuilder: WKTBuilder,
+    build: build
+});
 
 // ─── 内部工具：判断是否为 Position（[number, number] 或 [number, number, number]）
 function isPosition(v) {
@@ -555,6 +586,18 @@ function createGeometryCollection(geometries) {
     return _builder.createGeometryCollection(geometries);
 }
 
+var geojsonBuilder = /*#__PURE__*/Object.freeze({
+    __proto__: null,
+    GeoJSONBuilder: GeoJSONBuilder,
+    createGeometryCollection: createGeometryCollection,
+    createLineString: createLineString,
+    createMultiLineString: createMultiLineString,
+    createMultiPoint: createMultiPoint,
+    createMultiPolygon: createMultiPolygon,
+    createPoint: createPoint,
+    createPolygon: createPolygon
+});
+
 /**
  * 将 WKT 字符串转换为 GeoJSON Geometry 对象。
  *
@@ -606,6 +649,13 @@ function wktToFeatureCollection(wkts, properties) {
     return { type: 'FeatureCollection', features };
 }
 
+var wktToGeojson = /*#__PURE__*/Object.freeze({
+    __proto__: null,
+    wktToFeature: wktToFeature,
+    wktToFeatureCollection: wktToFeatureCollection,
+    wktToGeoJSON: wktToGeoJSON
+});
+
 /**
  * 将 GeoJSON Geometry 对象转换为 WKT 字符串。
  *
@@ -650,6 +700,13 @@ function featureCollectionToWkt(fc) {
         return build(f.geometry);
     });
 }
+
+var geojsonToWkt$1 = /*#__PURE__*/Object.freeze({
+    __proto__: null,
+    featureCollectionToWkt: featureCollectionToWkt,
+    featureToWkt: featureToWkt,
+    geojsonToWkt: geojsonToWkt
+});
 
 /**
  * 校验 WKT 字符串格式是否合法
@@ -792,10 +849,13 @@ function tryFixWKT(wkt) {
     if (!trimmed) {
         return { fixed: wkt, changed: false };
     }
-    // 检查是否有尾部多余字符
-    const result = validateWKT(trimmed);
-    if (result.valid) {
+    // 先尝试直接解析，如果成功则不需要修复
+    try {
+        parse(trimmed);
         return { fixed: trimmed, changed: false };
+    }
+    catch {
+        // 解析失败，尝试修复
     }
     // 尝试找到最后一个有效的 geometry 结束位置
     const patterns = [
@@ -807,8 +867,12 @@ function tryFixWKT(wkt) {
         const match = trimmed.match(pattern);
         if (match) {
             const fixed = trimmed.slice(0, match.index + (match[0].match(/\)/)?.[0].length || 0));
-            if (validateWKT(fixed).valid) {
+            try {
+                parse(fixed);
                 return { fixed, changed: true };
+            }
+            catch {
+                // 这个修复方案不行，尝试下一个
             }
         }
     }
@@ -816,8 +880,12 @@ function tryFixWKT(wkt) {
     const lastValidIndex = findLastValidPosition(trimmed);
     if (lastValidIndex > 0) {
         const fixed = trimmed.slice(0, lastValidIndex + 1);
-        if (validateWKT(fixed).valid) {
+        try {
+            parse(fixed);
             return { fixed, changed: true };
+        }
+        catch {
+            // 修复失败
         }
     }
     return { fixed: wkt, changed: false };
@@ -858,7 +926,39 @@ function cloneGeometry(geometry) {
 function geometryEquals(a, b) {
     if (a.type !== b.type)
         return false;
+    // Point 比较最常见，单独优化
+    if (a.type === 'Point') {
+        const aCoords = a.coordinates;
+        const bCoords = b.coordinates;
+        return aCoords.length === bCoords.length &&
+            aCoords[0] === bCoords[0] &&
+            aCoords[1] === bCoords[1] &&
+            (aCoords.length === 2 || aCoords[2] === bCoords[2]);
+    }
+    // 其他类型使用 JSON.stringify（缓存 key 优化可后续添加）
     return JSON.stringify(a) === JSON.stringify(b);
 }
 
-export { GeoJSONBuilder, WKTBuilder, WKTParser, build, cloneGeometry, createGeometryCollection, createLineString, createMultiLineString, createMultiPoint, createMultiPolygon, createPoint, createPolygon, featureCollectionToWkt, featureToWkt, geojsonToWkt, geometryEquals, parse, tryFixWKT, validateGeoJSON, validateWKT, wktToFeature, wktToFeatureCollection, wktToGeoJSON };
+var validate = /*#__PURE__*/Object.freeze({
+    __proto__: null,
+    cloneGeometry: cloneGeometry,
+    geometryEquals: geometryEquals,
+    tryFixWKT: tryFixWKT,
+    validateGeoJSON: validateGeoJSON,
+    validateWKT: validateWKT
+});
+
+// 命名空间导出 - 所有公共 API 汇总
+// 使用方式: import WKT from 'wkt-parse-and-geojson';
+//          WKT.parse(...), WKT.build(...), etc.
+const WKT = {
+    ...types,
+    ...wktParser,
+    ...wktBuilder,
+    ...geojsonBuilder,
+    ...wktToGeojson,
+    ...geojsonToWkt$1,
+    ...validate,
+};
+
+export { GeoJSONBuilder, WKT, WKTBuilder, WKTParser, build, cloneGeometry, createGeometryCollection, createLineString, createMultiLineString, createMultiPoint, createMultiPolygon, createPoint, createPolygon, featureCollectionToWkt, featureToWkt, geojsonToWkt, geometryEquals, parse, tryFixWKT, validateGeoJSON, validateWKT, wktToFeature, wktToFeatureCollection, wktToGeoJSON };

@@ -1,6 +1,6 @@
 {
   "name": "wkt-parse-and-geojson",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "type": "module",
   "description": "Zero-dependency WKT parser/builder and WKT↔GeoJSON converter",
   "main": "dist/index.cjs.js",

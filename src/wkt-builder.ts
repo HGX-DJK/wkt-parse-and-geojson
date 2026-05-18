@@ -15,11 +15,10 @@ import {
  * 例：1e-7 → "0.0000001"，1.50000 → "1.5"，1.0 → "1"
  */
 function formatNumber(v: number): string {
-  // 有小数则最多保留 15 位有效位，再去掉尾零
   if (v % 1 !== 0) {
-    return parseFloat(v.toFixed(15)).toString();
+    return Number(v.toFixed(15)).toString();
   }
-  return v.toFixed(0);
+  return String(v);
 }
 
 function positionToWkt(pos: Position): string {
@@ -28,6 +27,29 @@ function positionToWkt(pos: Position): string {
 
 function coordsToWkt(coords: Position[]): string {
   return coords.map(positionToWkt).join(', ');
+}
+
+// 检查坐标是否包含 Z（3个分量）
+function hasZ(coordinates: Position | Position[] | Position[][] | Position[][][]): boolean {
+  if (!Array.isArray(coordinates)) return false;
+  if (coordinates.length === 0) return false;
+
+  const first = coordinates[0];
+  if (Array.isArray(first)) {
+    if (typeof first[0] === 'number') {
+      return (first as Position).length === 3;
+    }
+    if (Array.isArray(first[0])) {
+      const firstRing = (first as Position[]);
+      return firstRing.length > 0 && (firstRing[0] as Position).length === 3;
+    }
+  }
+  return false;
+}
+
+// 获取 Z 后缀字符串
+function zSuffix(coordinates: Position | Position[] | Position[][] | Position[][][]): string {
+  return hasZ(coordinates) ? ' Z' : '';
 }
 
 export class WKTBuilder {
@@ -53,21 +75,18 @@ export class WKTBuilder {
   }
 
   private buildPoint(geom: Point): string {
-    const hasZ = geom.coordinates.length === 3;
-    return `POINT${hasZ ? ' Z' : ''} (${positionToWkt(geom.coordinates)})`;
+    return `POINT${zSuffix(geom.coordinates)} (${positionToWkt(geom.coordinates)})`;
   }
 
   private buildLineString(geom: LineString): string {
     if (geom.coordinates.length === 0) return 'LINESTRING EMPTY';
-    const hasZ = geom.coordinates[0].length === 3;
-    return `LINESTRING${hasZ ? ' Z' : ''} (${coordsToWkt(geom.coordinates)})`;
+    return `LINESTRING${zSuffix(geom.coordinates)} (${coordsToWkt(geom.coordinates)})`;
   }
 
   private buildPolygon(geom: Polygon): string {
     if (geom.coordinates.length === 0) return 'POLYGON EMPTY';
-    const hasZ = geom.coordinates[0].length > 0 && geom.coordinates[0][0].length === 3;
     const ringStr = geom.coordinates.map(ring => `(${coordsToWkt(ring)})`).join(', ');
-    return `POLYGON${hasZ ? ' Z' : ''} (${ringStr})`;
+    return `POLYGON${zSuffix(geom.coordinates)} (${ringStr})`;
   }
 
   /**
@@ -76,26 +95,23 @@ export class WKTBuilder {
    */
   private buildMultiPoint(geom: MultiPoint): string {
     if (geom.coordinates.length === 0) return 'MULTIPOINT EMPTY';
-    const hasZ = geom.coordinates[0].length === 3;
     const pts = geom.coordinates.map(p => `(${positionToWkt(p)})`).join(', ');
-    return `MULTIPOINT${hasZ ? ' Z' : ''} (${pts})`;
+    return `MULTIPOINT${zSuffix(geom.coordinates)} (${pts})`;
   }
 
   private buildMultiLineString(geom: MultiLineString): string {
     if (geom.coordinates.length === 0) return 'MULTILINESTRING EMPTY';
-    const hasZ = geom.coordinates[0].length > 0 && geom.coordinates[0][0].length === 3;
     const lines = geom.coordinates.map(line => `(${coordsToWkt(line)})`).join(', ');
-    return `MULTILINESTRING${hasZ ? ' Z' : ''} (${lines})`;
+    return `MULTILINESTRING${zSuffix(geom.coordinates)} (${lines})`;
   }
 
   private buildMultiPolygon(geom: MultiPolygon): string {
     if (geom.coordinates.length === 0) return 'MULTIPOLYGON EMPTY';
-    const hasZ = geom.coordinates[0].length > 0 && geom.coordinates[0][0].length > 0 && geom.coordinates[0][0][0].length === 3;
     const polys = geom.coordinates.map(poly => {
       const rings = poly.map(ring => `(${coordsToWkt(ring)})`).join(', ');
       return `(${rings})`;
     }).join(', ');
-    return `MULTIPOLYGON${hasZ ? ' Z' : ''} (${polys})`;
+    return `MULTIPOLYGON${zSuffix(geom.coordinates)} (${polys})`;
   }
 
   private buildGeometryCollection(geom: GeometryCollection): string {

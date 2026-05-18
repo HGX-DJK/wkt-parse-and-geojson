@@ -83,8 +83,12 @@ npm install wkt-parse-and-geojson
 // CommonJS
 const { parse, build, wktToFeature } = require('wkt-parse-and-geojson');
 
-// ES Module
+// ES Module - 按需导入
 import { parse, build, wktToFeature } from 'wkt-parse-and-geojson';
+
+// ES Module - 命名空间导入（避免命名冲突）
+import WKT from 'wkt-parse-and-geojson';
+const geom = WKT.parse('POINT (116.39 39.91)');
 ```
 
 ### 浏览器 (script 标签)
@@ -93,13 +97,13 @@ import { parse, build, wktToFeature } from 'wkt-parse-and-geojson';
 <!-- UMD 方式：通过 script 标签直接引入，全局变量 WKTGeoJSON -->
 <script src="https://unpkg.com/wkt-parse-and-geojson/dist/index.umd.js"></script>
 <script>
+  // 方式一：使用命名空间（推荐，避免命名冲突）
   const geom = WKTGeoJSON.parse('POINT (116.39 39.91)');
   console.log(geom);
-  // → { type: 'Point', coordinates: [116.39, 39.91] }
 
-  const wkt = WKTGeoJSON.build(geom);
-  console.log(wkt);
-  // → "POINT (116.39 39.91)"
+  // 方式二：解构赋值（需注意命名冲突）
+  const { parse, build } = WKTGeoJSON;
+  const wkt = build(geom);
 </script>
 ```
 

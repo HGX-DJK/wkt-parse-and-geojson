@@ -1,0 +1,1165 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WKT & GeoJSON 完整测试</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 20px;
+      color: #333;
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    .section {
+      background: white;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .section h2 {
+      color: #666;
+      margin-bottom: 15px;
+      padding-bottom: 10px;
+      border-bottom: 2px solid #eee;
+    }
+
+    .test-item {
+      padding: 15px;
+      border-radius: 6px;
+      margin-bottom: 15px;
+      background: #fafafa;
+    }
+
+    .test-item h3 {
+      color: #333;
+      margin-bottom: 10px;
+      font-size: 14px;
+    }
+
+    .test-item .row {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 10px;
+      align-items: center;
+    }
+
+    .test-item label {
+      width: 120px;
+      text-align: right;
+      line-height: 32px;
+      color: #666;
+      font-size: 13px;
+      flex-shrink: 0;
+    }
+
+    .test-item input {
+      flex: 1;
+      padding: 8px 12px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-family: monospace;
+      font-size: 13px;
+    }
+
+    .test-item textarea {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-family: monospace;
+      font-size: 13px;
+      resize: vertical;
+      min-height: 60px;
+    }
+
+    .test-item .result {
+      margin-top: 10px;
+      padding: 12px;
+      border-radius: 4px;
+      font-family: monospace;
+      font-size: 13px;
+      word-break: break-all;
+      white-space: pre-wrap;
+    }
+
+    .test-item button {
+      padding: 8px 20px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 13px;
+      transition: background 0.2s;
+    }
+
+    .btn-parse {
+      background: #4CAF50;
+      color: white;
+    }
+
+    .btn-parse:hover {
+      background: #45a049;
+    }
+
+    .btn-build {
+      background: #2196F3;
+      color: white;
+    }
+
+    .btn-build:hover {
+      background: #1976D2;
+    }
+
+    .btn-test {
+      background: #FF9800;
+      color: white;
+    }
+
+    .btn-test:hover {
+      background: #F57C00;
+    }
+
+    .success {
+      background: #E8F5E9;
+      border: 1px solid #A5D6A7;
+      color: #2E7D32;
+    }
+
+    .error {
+      background: #FFEBEE;
+      border: 1px solid #FFCDD2;
+      color: #C62828;
+    }
+
+    .log-area {
+      margin-top: 15px;
+    }
+
+    .log-area h4 {
+      margin-bottom: 8px;
+      color: #666;
+      font-size: 13px;
+    }
+
+    .log-area pre {
+      background: #263238;
+      color: #fff;
+      padding: 15px;
+      border-radius: 4px;
+      overflow-x: auto;
+      font-size: 12px;
+      line-height: 1.5;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+
+    .factory-section {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 15px;
+    }
+
+    .factory-item {
+      background: #fafafa;
+      padding: 15px;
+      border-radius: 6px;
+    }
+
+    .factory-item h4 {
+      color: #333;
+      margin-bottom: 10px;
+      font-size: 14px;
+    }
+
+    .factory-item input {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      margin-bottom: 8px;
+      font-family: monospace;
+      font-size: 12px;
+    }
+
+    .factory-item .coords-help {
+      font-size: 11px;
+      color: #999;
+      margin-bottom: 8px;
+    }
+
+    .factory-item button {
+      width: 100%;
+      padding: 8px;
+      background: #9C27B0;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    .factory-item button:hover {
+      background: #7B1FA2;
+    }
+
+    .test-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+      gap: 15px;
+    }
+
+    .batch-test {
+      background: #f0f0f0;
+      padding: 10px;
+      border-radius: 4px;
+      margin: 5px 0;
+    }
+
+    .batch-test-pass {
+      color: #2E7D32;
+    }
+
+    .batch-test-fail {
+      color: #C62828;
+    }
+
+    .summary {
+      background: #E3F2FD;
+      border: 1px solid #90CAF9;
+      padding: 15px;
+      border-radius: 6px;
+      margin-bottom: 15px;
+    }
+
+    .summary h3 {
+      color: #1565C0;
+      margin-bottom: 10px;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <h1>WKT & GeoJSON 完整测试</h1>
+
+    <div class="section">
+      <h2>测试摘要</h2>
+      <div class="summary">
+        <h3>自动测试结果</h3>
+        <div id="test-summary">运行中...</div>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>1. WKT → GeoJSON (wktToGeoJSON)</h2>
+      <div class="test-grid">
+        <div class="test-item">
+          <h3>POINT 测试</h3>
+          <div class="row">
+            <label>输入 WKT:</label>
+            <input type="text" id="wkt-point" value="POINT (30.5 40.5)">
+            <button class="btn-parse" onclick="testWktToGeoJSON('wkt-point', 'point-result')">解析</button>
+          </div>
+          <div class="result" id="point-result"></div>
+        </div>
+
+        <div class="test-item">
+          <h3>POINT Z (3D)</h3>
+          <div class="row">
+            <label>输入 WKT:</label>
+            <input type="text" id="wkt-pointz" value="POINT Z (30.5 40.5 100)">
+            <button class="btn-parse" onclick="testWktToGeoJSON('wkt-pointz', 'pointz-result')">解析</button>
+          </div>
+          <div class="result" id="pointz-result"></div>
+        </div>
+
+        <div class="test-item">
+          <h3>LINESTRING 测试</h3>
+          <div class="row">
+            <label>输入 WKT:</label>
+            <input type="text" id="wkt-linestring" value="LINESTRING (30.5 40.5, 31.5 41.5, 32.5 40.5)">
+            <button class="btn-parse" onclick="testWktToGeoJSON('wkt-linestring', 'linestring-result')">解析</button>
+          </div>
+          <div class="result" id="linestring-result"></div>
+        </div>
+
+        <div class="test-item">
+          <h3>POLYGON 测试</h3>
+          <div class="row">
+            <label>输入 WKT:</label>
+            <input type="text" id="wkt-polygon" value="POLYGON ((0 0, 1 0, 1 1, 0 1, 0 0))">
+            <button class="btn-parse" onclick="testWktToGeoJSON('wkt-polygon', 'polygon-result')">解析</button>
+          </div>
+          <div class="result" id="polygon-result"></div>
+        </div>
+
+        <div class="test-item">
+          <h3>POLYGON with 空洞</h3>
+          <div class="row">
+            <label>输入 WKT:</label>
+            <input type="text" id="wkt-polygon-hole" value="POLYGON ((0 0, 10 0, 10 10, 0 10, 0 0), (2 2, 4 2, 4 4, 2 4, 2 2))">
+            <button class="btn-parse" onclick="testWktToGeoJSON('wkt-polygon-hole', 'polygon-hole-result')">解析</button>
+          </div>
+          <div class="result" id="polygon-hole-result"></div>
+        </div>
+
+        <div class="test-item">
+          <h3>MULTIPOINT 测试</h3>
+          <div class="row">
+            <label>输入 WKT:</label>
+            <input type="text" id="wkt-multipoint" value="MULTIPOINT ((0 0), (1 1), (2 2))">
+            <button class="btn-parse" onclick="testWktToGeoJSON('wkt-multipoint', 'multipoint-result')">解析</button>
+          </div>
+          <div class="result" id="multipoint-result"></div>
+        </div>
+
+        <div class="test-item">
+          <h3>MULTIPOINT 非标准格式</h3>
+          <div class="row">
+            <label>输入 WKT:</label>
+            <input type="text" id="wkt-multipoint-alt" value="MULTIPOINT (0 0, 1 1, 2 2)">
+            <button class="btn-parse" onclick="testWktToGeoJSON('wkt-multipoint-alt', 'multipoint-alt-result')">解析</button>
+          </div>
+          <div class="result" id="multipoint-alt-result"></div>
+        </div>
+
+        <div class="test-item">
+          <h3>MULTILINESTRING 测试</h3>
+          <div class="row">
+            <label>输入 WKT:</label>
+            <input type="text" id="wkt-multilinestring" value="MULTILINESTRING ((0 0, 1 1), (2 2, 3 3))">
+            <button class="btn-parse" onclick="testWktToGeoJSON('wkt-multilinestring', 'multilinestring-result')">解析</button>
+          </div>
+          <div class="result" id="multilinestring-result"></div>
+        </div>
+
+        <div class="test-item">
+          <h3>MULTIPOLYGON 测试</h3>
+          <div class="row">
+            <label>输入 WKT:</label>
+            <input type="text" id="wkt-multipolygon" value="MULTIPOLYGON (((0 0, 1 0, 1 1, 0 1, 0 0)))">
+            <button class="btn-parse" onclick="testWktToGeoJSON('wkt-multipolygon', 'multipolygon-result')">解析</button>
+          </div>
+          <div class="result" id="multipolygon-result"></div>
+        </div>
+
+        <div class="test-item">
+          <h3>MULTIPOLYGON 多多边形</h3>
+          <div class="row">
+            <label>输入 WKT:</label>
+            <input type="text" id="wkt-multipolygon2" value="MULTIPOLYGON (((0 0, 2 0, 2 2, 0 2, 0 0)), ((3 3, 5 3, 5 5, 3 5, 3 3)))">
+            <button class="btn-parse" onclick="testWktToGeoJSON('wkt-multipolygon2', 'multipolygon2-result')">解析</button>
+          </div>
+          <div class="result" id="multipolygon2-result"></div>
+        </div>
+
+        <div class="test-item">
+          <h3>GEOMETRYCOLLECTION 测试</h3>
+          <div class="row">
+            <label>输入 WKT:</label>
+            <input type="text" id="wkt-geometrycollection" value="GEOMETRYCOLLECTION (POINT (0 0), LINESTRING (0 0, 1 1))">
+            <button class="btn-parse" onclick="testWktToGeoJSON('wkt-geometrycollection', 'geometrycollection-result')">解析</button>
+          </div>
+          <div class="result" id="geometrycollection-result"></div>
+        </div>
+
+        <div class="test-item">
+          <h3>LINESTRING EMPTY</h3>
+          <div class="row">
+            <label>输入 WKT:</label>
+            <input type="text" id="wkt-linestring-empty" value="LINESTRING EMPTY">
+            <button class="btn-parse" onclick="testWktToGeoJSON('wkt-linestring-empty', 'linestring-empty-result')">解析</button>
+          </div>
+          <div class="result" id="linestring-empty-result"></div>
+        </div>
+
+        <div class="test-item">
+          <h3>POLYGON EMPTY</h3>
+          <div class="row">
+            <label>输入 WKT:</label>
+            <input type="text" id="wkt-polygon-empty" value="POLYGON EMPTY">
+            <button class="btn-parse" onclick="testWktToGeoJSON('wkt-polygon-empty', 'polygon-empty-result')">解析</button>
+          </div>
+          <div class="result" id="polygon-empty-result"></div>
+        </div>
+
+        <div class="test-item">
+          <h3>POINT EMPTY (应报错)</h3>
+          <div class="row">
+            <label>输入 WKT:</label>
+            <input type="text" id="wkt-point-empty" value="POINT EMPTY">
+            <button class="btn-parse" onclick="testWktToGeoJSON('wkt-point-empty', 'point-empty-result')">解析</button>
+          </div>
+          <div class="result" id="point-empty-result"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>2. WKT → Feature (wktToFeature)</h2>
+      <div class="test-item">
+        <h3>带属性的 Feature</h3>
+        <div class="row">
+          <label>输入 WKT:</label>
+          <input type="text" id="wkt-feature-input" value="POINT (100 200)">
+          <button class="btn-parse" onclick="testWktToFeature()">解析为Feature</button>
+        </div>
+        <div class="result" id="feature-result"></div>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>3. 多WKT → FeatureCollection (wktToFeatureCollection)</h2>
+      <div class="test-item">
+        <h3>批量解析</h3>
+        <textarea id="wkt-collection-input" placeholder="输入多个WKT，每行一个：">
+POINT (0 0)
+LINESTRING (0 0, 1 1)
+POLYGON ((0 0, 2 0, 2 2, 0 2, 0 0))
+POINT (10 10)</textarea>
+        <div class="row" style="margin-top: 10px;">
+          <button class="btn-parse" onclick="testWktToFeatureCollection()">批量解析</button>
+        </div>
+        <div class="result" id="fc-result"></div>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>4. GeoJSON → WKT (geojsonToWkt)</h2>
+      <div class="test-grid">
+        <div class="test-item">
+          <h3>Point → WKT</h3>
+          <textarea id="geojson-point">{
+  "type": "Point",
+  "coordinates": [30.5, 40.5]
+}</textarea>
+          <div class="row" style="margin-top: 10px;">
+            <button class="btn-build" onclick="testGeojsonToWkt('geojson-point', 'gj-point-result')">转换</button>
+          </div>
+          <div class="result" id="gj-point-result"></div>
+        </div>
+
+        <div class="test-item">
+          <h3>LineString → WKT</h3>
+          <textarea id="geojson-linestring">{
+  "type": "LineString",
+  "coordinates": [[0,0], [1,1], [2,0]]
+}</textarea>
+          <div class="row" style="margin-top: 10px;">
+            <button class="btn-build" onclick="testGeojsonToWkt('geojson-linestring', 'gj-linestring-result')">转换</button>
+          </div>
+          <div class="result" id="gj-linestring-result"></div>
+        </div>
+
+        <div class="test-item">
+          <h3>Polygon → WKT</h3>
+          <textarea id="geojson-polygon">{
+  "type": "Polygon",
+  "coordinates": [[[0,0], [4,0], [4,4], [0,4], [0,0]]]
+}</textarea>
+          <div class="row" style="margin-top: 10px;">
+            <button class="btn-build" onclick="testGeojsonToWkt('geojson-polygon', 'gj-polygon-result')">转换</button>
+          </div>
+          <div class="result" id="gj-polygon-result"></div>
+        </div>
+
+        <div class="test-item">
+          <h3>MultiPoint → WKT</h3>
+          <textarea id="geojson-multipoint">{
+  "type": "MultiPoint",
+  "coordinates": [[0,0], [1,1], [2,2]]
+}</textarea>
+          <div class="row" style="margin-top: 10px;">
+            <button class="btn-build" onclick="testGeojsonToWkt('geojson-multipoint', 'gj-multipoint-result')">转换</button>
+          </div>
+          <div class="result" id="gj-multipoint-result"></div>
+        </div>
+
+        <div class="test-item">
+          <h3>MultiLineString → WKT</h3>
+          <textarea id="geojson-multilinestring">{
+  "type": "MultiLineString",
+  "coordinates": [[[0,0], [1,1]], [[2,2], [3,3]]]
+}</textarea>
+          <div class="row" style="margin-top: 10px;">
+            <button class="btn-build" onclick="testGeojsonToWkt('geojson-multilinestring', 'gj-multilinestring-result')">转换</button>
+          </div>
+          <div class="result" id="gj-multilinestring-result"></div>
+        </div>
+
+        <div class="test-item">
+          <h3>MultiPolygon → WKT</h3>
+          <textarea id="geojson-multipolygon">{
+  "type": "MultiPolygon",
+  "coordinates": [[[[0,0], [2,0], [2,2], [0,2], [0,0]]]]
+}</textarea>
+          <div class="row" style="margin-top: 10px;">
+            <button class="btn-build" onclick="testGeojsonToWkt('geojson-multipolygon', 'gj-multipolygon-result')">转换</button>
+          </div>
+          <div class="result" id="gj-multipolygon-result"></div>
+        </div>
+
+        <div class="test-item">
+          <h3>GeometryCollection → WKT</h3>
+          <textarea id="geojson-geometrycollection">{
+  "type": "GeometryCollection",
+  "geometries": [
+    { "type": "Point", "coordinates": [0, 0] },
+    { "type": "LineString", "coordinates": [[0,0], [1,1]] }
+  ]
+}</textarea>
+          <div class="row" style="margin-top: 10px;">
+            <button class="btn-build" onclick="testGeojsonToWkt('geojson-geometrycollection', 'gj-geometrycollection-result')">转换</button>
+          </div>
+          <div class="result" id="gj-geometrycollection-result"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>5. Feature → WKT (featureToWkt)</h2>
+      <div class="test-item">
+        <h3>带属性和ID的Feature</h3>
+        <textarea id="feature-input">{
+  "type": "Feature",
+  "id": 1,
+  "geometry": {
+    "type": "Point",
+    "coordinates": [55.5, 66.6]
+  },
+  "properties": {
+    "name": "测试点",
+    "category": "A"
+  }
+}</textarea>
+        <div class="row" style="margin-top: 10px;">
+          <button class="btn-build" onclick="testFeatureToWkt()">Feature转WKT</button>
+        </div>
+        <div class="result" id="feature-to-wkt-result"></div>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>6. FeatureCollection → WKTs (featureCollectionToWkt)</h2>
+      <div class="test-item">
+        <h3>批量Feature转换</h3>
+        <textarea id="fc-input">{
+  "type": "FeatureCollection",
+  "features": [
+    { "type": "Feature", "geometry": { "type": "Point", "coordinates": [1, 2] }, "properties": null },
+    { "type": "Feature", "geometry": { "type": "LineString", "coordinates": [[0,0], [1,1]] }, "properties": { "name": "line1" } },
+    { "type": "Feature", "geometry": { "type": "Polygon", "coordinates": [[[0,0], [2,0], [2,2], [0,2], [0,0]]] }, "properties": null }
+  ]
+}</textarea>
+        <div class="row" style="margin-top: 10px;">
+          <button class="btn-build" onclick="testFeatureCollectionToWkt()">批量转换</button>
+        </div>
+        <div class="result" id="fc-to-wkt-result"></div>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>7. 完整往返测试 (WKT → GeoJSON → WKT)</h2>
+      <div class="test-grid">
+        <div class="test-item">
+          <h3>往返测试 - Point</h3>
+          <div class="row">
+            <label>输入 WKT:</label>
+            <input type="text" id="roundtrip-point" value="POINT (30.5 40.5)">
+            <button class="btn-test" onclick="testRoundTrip('roundtrip-point', 'rt-point-result')">往返</button>
+          </div>
+          <div class="result" id="rt-point-result"></div>
+        </div>
+
+        <div class="test-item">
+          <h3>往返测试 - LineString</h3>
+          <div class="row">
+            <label>输入 WKT:</label>
+            <input type="text" id="roundtrip-linestring" value="LINESTRING (0 0, 1 1, 2 2, 3 3)">
+            <button class="btn-test" onclick="testRoundTrip('roundtrip-linestring', 'rt-linestring-result')">往返</button>
+          </div>
+          <div class="result" id="rt-linestring-result"></div>
+        </div>
+
+        <div class="test-item">
+          <h3>往返测试 - Polygon</h3>
+          <div class="row">
+            <label>输入 WKT:</label>
+            <input type="text" id="roundtrip-polygon" value="POLYGON ((0 0, 10 0, 10 10, 0 10, 0 0))">
+            <button class="btn-test" onclick="testRoundTrip('roundtrip-polygon', 'rt-polygon-result')">往返</button>
+          </div>
+          <div class="result" id="rt-polygon-result"></div>
+        </div>
+
+        <div class="test-item">
+          <h3>往返测试 - MultiPoint</h3>
+          <div class="row">
+            <label>输入 WKT:</label>
+            <input type="text" id="roundtrip-multipoint" value="MULTIPOINT ((0 0), (1 1), (2 2))">
+            <button class="btn-test" onclick="testRoundTrip('roundtrip-multipoint', 'rt-multipoint-result')">往返</button>
+          </div>
+          <div class="result" id="rt-multipoint-result"></div>
+        </div>
+
+        <div class="test-item">
+          <h3>往返测试 - MultiLineString</h3>
+          <div class="row">
+            <label>输入 WKT:</label>
+            <input type="text" id="roundtrip-multilinestring" value="MULTILINESTRING ((0 0, 1 1), (2 2, 3 3))">
+            <button class="btn-test" onclick="testRoundTrip('roundtrip-multilinestring', 'rt-multilinestring-result')">往返</button>
+          </div>
+          <div class="result" id="rt-multilinestring-result"></div>
+        </div>
+
+        <div class="test-item">
+          <h3>往返测试 - MultiPolygon</h3>
+          <div class="row">
+            <label>输入 WKT:</label>
+            <input type="text" id="roundtrip-multipolygon" value="MULTIPOLYGON (((0 0, 2 0, 2 2, 0 2, 0 0)))">
+            <button class="btn-test" onclick="testRoundTrip('roundtrip-multipolygon', 'rt-multipolygon-result')">往返</button>
+          </div>
+          <div class="result" id="rt-multipolygon-result"></div>
+        </div>
+
+        <div class="test-item">
+          <h3>往返测试 - GeometryCollection</h3>
+          <div class="row">
+            <label>输入 WKT:</label>
+            <input type="text" id="roundtrip-gc" value="GEOMETRYCOLLECTION (POINT (0 0), LINESTRING (0 0, 1 1))">
+            <button class="btn-test" onclick="testRoundTrip('roundtrip-gc', 'rt-gc-result')">往返</button>
+          </div>
+          <div class="result" id="rt-gc-result"></div>
+        </div>
+
+        <div class="test-item">
+          <h3>往返测试 - 3D Point</h3>
+          <div class="row">
+            <label>输入 WKT:</label>
+            <input type="text" id="roundtrip-point3d" value="POINT Z (10 20 30)">
+            <button class="btn-test" onclick="testRoundTrip('roundtrip-point3d', 'rt-point3d-result')">往返</button>
+          </div>
+          <div class="result" id="rt-point3d-result"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>8. GeoJSON 工厂方法测试</h2>
+      <div class="factory-section">
+        <div class="factory-item">
+          <h4>createPoint</h4>
+          <div class="coords-help">x, y, z (可选)</div>
+          <input type="text" id="factory-point" value="30.5, 40.5" placeholder="30.5, 40.5 或 30.5, 40.5, 100">
+          <button onclick="testCreatePoint()">创建 Point</button>
+        </div>
+        <div class="factory-item">
+          <h4>createLineString</h4>
+          <div class="coords-help">坐标对，用分号分隔</div>
+          <input type="text" id="factory-linestring" value="0,0; 1,1; 2,0" placeholder="0,0; 1,1; 2,0">
+          <button onclick="testCreateLineString()">创建 LineString</button>
+        </div>
+        <div class="factory-item">
+          <h4>createPolygon (单环)</h4>
+          <div class="coords-help">坐标对，用分号分隔</div>
+          <input type="text" id="factory-polygon" value="0,0; 1,0; 1,1; 0,1; 0,0" placeholder="0,0; 1,0; 1,1; 0,1; 0,0">
+          <button onclick="testCreatePolygon()">创建 Polygon</button>
+        </div>
+        <div class="factory-item">
+          <h4>createPolygon (多环)</h4>
+          <div class="coords-help">环(坐标对用分号分隔)，环之间用 | 分隔</div>
+          <input type="text" id="factory-polygon-holes" value="0,0; 5,0; 5,5; 0,5; 0,0 | 1,1; 2,1; 2,2; 1,2; 1,1" placeholder="外环 | 内环">
+          <button onclick="testCreatePolygonHoles()">创建 Polygon (带空洞)</button>
+        </div>
+        <div class="factory-item">
+          <h4>createMultiPoint</h4>
+          <div class="coords-help">坐标对，用分号分隔</div>
+          <input type="text" id="factory-multipoint" value="0,0; 1,1; 2,2" placeholder="0,0; 1,1; 2,2">
+          <button onclick="testCreateMultiPoint()">创建 MultiPoint</button>
+        </div>
+        <div class="factory-item">
+          <h4>createMultiLineString</h4>
+          <div class="coords-help">线(坐标对用分号分隔)，线之间用 | 分隔</div>
+          <input type="text" id="factory-multilinestring" value="0,0; 1,1 | 2,2; 3,3" placeholder="0,0; 1,1 | 2,2; 3,3">
+          <button onclick="testCreateMultiLineString()">创建 MultiLineString</button>
+        </div>
+        <div class="factory-item">
+          <h4>createMultiPolygon</h4>
+          <div class="coords-help">多边形(环用 | 分隔)，多边形之间用 || 分隔</div>
+          <input type="text" id="factory-multipolygon" value="0,0; 3,0; 3,3; 0,3; 0,0 || 4,4; 6,4; 6,6; 4,6; 4,4" placeholder="第一个多边形 || 第二个多边形">
+          <button onclick="testCreateMultiPolygon()">创建 MultiPolygon</button>
+        </div>
+      </div>
+      <div class="log-area" id="factory-log">
+        <h4>生成结果:</h4>
+        <pre id="factory-output">等待生成...</pre>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>9. 错误处理测试</h2>
+      <div class="test-grid">
+        <div class="test-item">
+          <h3>无效 WKT - 缺少括号</h3>
+          <div class="row">
+            <label>输入 WKT:</label>
+            <input type="text" id="error-wkt1" value="POINT 30.5 40.5">
+            <button class="btn-parse" onclick="testWktToGeoJSON('error-wkt1', 'error-wkt1-result')">解析</button>
+          </div>
+          <div class="result" id="error-wkt1-result"></div>
+        </div>
+
+        <div class="test-item">
+          <h3>无效 WKT - 错误类型</h3>
+          <div class="row">
+            <label>输入 WKT:</label>
+            <input type="text" id="error-wkt2" value="TRIANGLE (0 0, 1 0, 0 1)">
+            <button class="btn-parse" onclick="testWktToGeoJSON('error-wkt2', 'error-wkt2-result')">解析</button>
+          </div>
+          <div class="result" id="error-wkt2-result"></div>
+        </div>
+
+        <div class="test-item">
+          <h3>无效 GeoJSON - 缺少坐标</h3>
+          <textarea id="error-gj1">{
+  "type": "Point"
+}</textarea>
+          <div class="row" style="margin-top: 10px;">
+            <button class="btn-build" onclick="testGeojsonToWkt('error-gj1', 'error-gj1-result')">转换</button>
+          </div>
+          <div class="result" id="error-gj1-result"></div>
+        </div>
+
+        <div class="test-item">
+          <h3>Feature.geometry 为 null</h3>
+          <textarea id="error-feature">{
+  "type": "Feature",
+  "geometry": null,
+  "properties": null
+}</textarea>
+          <div class="row" style="margin-top: 10px;">
+            <button class="btn-build" onclick="testFeatureToWktError()">转换</button>
+          </div>
+          <div class="result" id="error-feature-result"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>10. 自动完整测试套件</h2>
+      <div class="test-item">
+        <button class="btn-test" onclick="runFullTestSuite()" style="padding: 15px 40px; font-size: 16px;">
+          运行完整测试套件
+        </button>
+        <div class="log-area" style="margin-top: 15px;">
+          <h4>测试日志:</h4>
+          <pre id="full-test-log">点击按钮运行测试...</pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="../dist/index.umd.js"></script>
+  <script type="module">
+    import {
+      parse,
+      build,
+      wktToGeoJSON,
+      wktToFeature,
+      wktToFeatureCollection,
+      geojsonToWkt,
+      featureToWkt,
+      featureCollectionToWkt,
+      createPoint,
+      createLineString,
+      createPolygon,
+      createMultiPoint,
+      createMultiLineString,
+      createMultiPolygon,
+      createGeometryCollection
+    } from '../dist/index.esm.js';
+
+    // Make functions available globally
+    window.parse = parse;
+    window.build = build;
+    window.wktToGeoJSON = wktToGeoJSON;
+    window.wktToFeature = wktToFeature;
+    window.wktToFeatureCollection = wktToFeatureCollection;
+    window.geojsonToWkt = geojsonToWkt;
+    window.featureToWkt = featureToWkt;
+    window.featureCollectionToWkt = featureCollectionToWkt;
+    window.createPoint = createPoint;
+    window.createLineString = createLineString;
+    window.createPolygon = createPolygon;
+    window.createMultiPoint = createMultiPoint;
+    window.createMultiLineString = createMultiLineString;
+    window.createMultiPolygon = createMultiPolygon;
+    window.createGeometryCollection = createGeometryCollection;
+
+    // Test results tracker
+    let testResults = [];
+
+    // WKT to GeoJSON test
+    window.testWktToGeoJSON = function (inputId, resultId) {
+      const wkt = document.getElementById(inputId).value;
+      const resultEl = document.getElementById(resultId);
+      try {
+        const geom = wktToGeoJSON(wkt);
+        resultEl.className = 'result success';
+        resultEl.textContent = JSON.stringify(geom, null, 2);
+        return { pass: true, result: geom };
+      } catch (e) {
+        resultEl.className = 'result error';
+        resultEl.textContent = '错误: ' + e.message;
+        return { pass: false, error: e.message };
+      }
+    };
+
+    // WKT to Feature test
+    window.testWktToFeature = function () {
+      const wkt = document.getElementById('wkt-feature-input').value;
+      const resultEl = document.getElementById('feature-result');
+      try {
+        const feature = wktToFeature(wkt, { name: '测试', category: 'A' }, 1);
+        resultEl.className = 'result success';
+        resultEl.textContent = JSON.stringify(feature, null, 2);
+      } catch (e) {
+        resultEl.className = 'result error';
+        resultEl.textContent = '错误: ' + e.message;
+      }
+    };
+
+    // WKT to FeatureCollection test
+    window.testWktToFeatureCollection = function () {
+      const input = document.getElementById('wkt-collection-input').value;
+      const resultEl = document.getElementById('fc-result');
+      try {
+        const wkts = input.trim().split('\n').filter(l => l.trim());
+        const fc = wktToFeatureCollection(wkts);
+        resultEl.className = 'result success';
+        resultEl.textContent = JSON.stringify(fc, null, 2);
+      } catch (e) {
+        resultEl.className = 'result error';
+        resultEl.textContent = '错误: ' + e.message;
+      }
+    };
+
+    // GeoJSON to WKT test
+    window.testGeojsonToWkt = function (inputId, resultId) {
+      const input = document.getElementById(inputId).value;
+      const resultEl = document.getElementById(resultId);
+      try {
+        const geom = JSON.parse(input);
+        const wkt = geojsonToWkt(geom);
+        resultEl.className = 'result success';
+        resultEl.textContent = wkt;
+        return { pass: true, result: wkt };
+      } catch (e) {
+        resultEl.className = 'result error';
+        resultEl.textContent = '错误: ' + e.message;
+        return { pass: false, error: e.message };
+      }
+    };
+
+    // Feature to WKT test
+    window.testFeatureToWkt = function () {
+      const input = document.getElementById('feature-input').value;
+      const resultEl = document.getElementById('feature-to-wkt-result');
+      try {
+        const feature = JSON.parse(input);
+        const wkt = featureToWkt(feature);
+        resultEl.className = 'result success';
+        resultEl.textContent = wkt;
+      } catch (e) {
+        resultEl.className = 'result error';
+        resultEl.textContent = '错误: ' + e.message;
+      }
+    };
+
+    // Feature to WKT error test
+    window.testFeatureToWktError = function () {
+      const input = document.getElementById('error-feature').value;
+      const resultEl = document.getElementById('error-feature-result');
+      try {
+        const feature = JSON.parse(input);
+        const wkt = featureToWkt(feature);
+        resultEl.className = 'result error';
+        resultEl.textContent = '应该报错但没有: ' + wkt;
+      } catch (e) {
+        resultEl.className = 'result success';
+        resultEl.textContent = '正确抛出错误: ' + e.message;
+      }
+    };
+
+    // FeatureCollection to WKT test
+    window.testFeatureCollectionToWkt = function () {
+      const input = document.getElementById('fc-input').value;
+      const resultEl = document.getElementById('fc-to-wkt-result');
+      try {
+        const fc = JSON.parse(input);
+        const wkts = featureCollectionToWkt(fc);
+        resultEl.className = 'result success';
+        resultEl.textContent = JSON.stringify(wkts, null, 2);
+      } catch (e) {
+        resultEl.className = 'result error';
+        resultEl.textContent = '错误: ' + e.message;
+      }
+    };
+
+    // Round trip test
+    window.testRoundTrip = function (inputId, resultId) {
+      const wkt = document.getElementById(inputId).value;
+      const resultEl = document.getElementById(resultId);
+      try {
+        const geom = parse(wkt);
+        const rebuilt = build(geom);
+        const equal = wkt.replace(/\s+/g, '').toUpperCase() === rebuilt.replace(/\s+/g, '').toUpperCase();
+        resultEl.className = equal ? 'result success' : 'result error';
+        resultEl.textContent = JSON.stringify({
+          input: wkt,
+          geometry: geom,
+          output: rebuilt,
+          match: equal
+        }, null, 2);
+        return { pass: equal, input: wkt, output: rebuilt };
+      } catch (e) {
+        resultEl.className = 'result error';
+        resultEl.textContent = '错误: ' + e.message;
+        return { pass: false, error: e.message };
+      }
+    };
+
+    // Factory method tests
+    window.testCreatePoint = function () {
+      const input = document.getElementById('factory-point').value;
+      const resultEl = document.getElementById('factory-output');
+      try {
+        const nums = input.split(',').map(p => parseFloat(p.trim()));
+        let geom;
+        if (nums.length === 2) {
+          geom = createPoint(nums[0], nums[1]);
+        } else if (nums.length === 3) {
+          geom = createPoint(nums[0], nums[1], nums[2]);
+        } else {
+          throw new Error('坐标格式错误');
+        }
+        resultEl.textContent = JSON.stringify(geom, null, 2);
+      } catch (e) {
+        resultEl.textContent = '错误: ' + e.message;
+      }
+    };
+
+    window.testCreateLineString = function () {
+      const input = document.getElementById('factory-linestring').value;
+      const resultEl = document.getElementById('factory-output');
+      try {
+        const pairs = input.split(';').map(p => {
+          const nums = p.split(',').map(n => parseFloat(n.trim()));
+          if (nums.length !== 2) throw new Error('每个坐标需要 x,y');
+          return [nums[0], nums[1]];
+        });
+        const geom = createLineString(pairs);
+        resultEl.textContent = JSON.stringify(geom, null, 2);
+      } catch (e) {
+        resultEl.textContent = '错误: ' + e.message;
+      }
+    };
+
+    window.testCreatePolygon = function () {
+      const input = document.getElementById('factory-polygon').value;
+      const resultEl = document.getElementById('factory-output');
+      try {
+        const pairs = input.split(';').map(p => {
+          const nums = p.split(',').map(n => parseFloat(n.trim()));
+          if (nums.length !== 2) throw new Error('每个坐标需要 x,y');
+          return [nums[0], nums[1]];
+        });
+        const geom = createPolygon([pairs]);
+        resultEl.textContent = JSON.stringify(geom, null, 2);
+      } catch (e) {
+        resultEl.textContent = '错误: ' + e.message;
+      }
+    };
+
+    window.testCreatePolygonHoles = function () {
+      const input = document.getElementById('factory-polygon-holes').value;
+      const resultEl = document.getElementById('factory-output');
+      try {
+        const rings = input.split('|').map(ring =>
+          ring.split(';').map(p => {
+            const nums = p.split(',').map(n => parseFloat(n.trim()));
+            if (nums.length !== 2) throw new Error('每个坐标需要 x,y');
+            return [nums[0], nums[1]];
+          })
+        );
+        const geom = createPolygon(rings);
+        resultEl.textContent = JSON.stringify(geom, null, 2);
+      } catch (e) {
+        resultEl.textContent = '错误: ' + e.message;
+      }
+    };
+
+    window.testCreateMultiPoint = function () {
+      const input = document.getElementById('factory-multipoint').value;
+      const resultEl = document.getElementById('factory-output');
+      try {
+        const pairs = input.split(';').map(p => {
+          const nums = p.split(',').map(n => parseFloat(n.trim()));
+          if (nums.length !== 2) throw new Error('每个坐标需要 x,y');
+          return [nums[0], nums[1]];
+        });
+        const geom = createMultiPoint(pairs);
+        resultEl.textContent = JSON.stringify(geom, null, 2);
+      } catch (e) {
+        resultEl.textContent = '错误: ' + e.message;
+      }
+    };
+
+    window.testCreateMultiLineString = function () {
+      const input = document.getElementById('factory-multilinestring').value;
+      const resultEl = document.getElementById('factory-output');
+      try {
+        const lines = input.split('|').map(line =>
+          line.split(';').map(p => {
+            const nums = p.split(',').map(n => parseFloat(n.trim()));
+            if (nums.length !== 2) throw new Error('每个坐标需要 x,y');
+            return [nums[0], nums[1]];
+          })
+        );
+        const geom = createMultiLineString(lines);
+        resultEl.textContent = JSON.stringify(geom, null, 2);
+      } catch (e) {
+        resultEl.textContent = '错误: ' + e.message;
+      }
+    };
+
+    window.testCreateMultiPolygon = function () {
+      const input = document.getElementById('factory-multipolygon').value;
+      const resultEl = document.getElementById('factory-output');
+      try {
+        const polygons = input.split('||').map(poly =>
+          poly.split('|').map(ring =>
+            ring.split(';').map(p => {
+              const nums = p.split(',').map(n => parseFloat(n.trim()));
+              if (nums.length !== 2) throw new Error('每个坐标需要 x,y');
+              return [nums[0], nums[1]];
+            })
+          )
+        );
+        const geom = createMultiPolygon(polygons);
+        resultEl.textContent = JSON.stringify(geom, null, 2);
+      } catch (e) {
+        resultEl.textContent = '错误: ' + e.message;
+      }
+    };
+
+    // Full test suite
+    window.runFullTestSuite = function () {
+      const logEl = document.getElementById('full-test-log');
+      let log = '';
+      let passed = 0;
+      let failed = 0;
+
+      function test(name, fn) {
+        try {
+          const result = fn();
+          if (result && result.pass === false) {
+            log += `❌ ${name}: ${result.error || 'failed'}\n`;
+            failed++;
+          } else {
+            log += `✅ ${name}\n`;
+            passed++;
+          }
+        } catch (e) {
+          log += `❌ ${name}: ${e.message}\n`;
+          failed++;
+        }
+      }
+
+      log += '=== WKT → GeoJSON 测试 ===\n';
+      test('POINT', () => testWktToGeoJSON('wkt-point', 'point-result'));
+      test('POINT Z (3D)', () => testWktToGeoJSON('wkt-pointz', 'pointz-result'));
+      test('LINESTRING', () => testWktToGeoJSON('wkt-linestring', 'linestring-result'));
+      test('POLYGON', () => testWktToGeoJSON('wkt-polygon', 'polygon-result'));
+      test('POLYGON with 空洞', () => testWktToGeoJSON('wkt-polygon-hole', 'polygon-hole-result'));
+      test('MULTIPOINT', () => testWktToGeoJSON('wkt-multipoint', 'multipoint-result'));
+      test('MULTIPOINT 非标准', () => testWktToGeoJSON('wkt-multipoint-alt', 'multipoint-alt-result'));
+      test('MULTILINESTRING', () => testWktToGeoJSON('wkt-multilinestring', 'multilinestring-result'));
+      test('MULTIPOLYGON', () => testWktToGeoJSON('wkt-multipolygon', 'multipolygon-result'));
+      test('MULTIPOLYGON 多多边形', () => testWktToGeoJSON('wkt-multipolygon2', 'multipolygon2-result'));
+      test('GEOMETRYCOLLECTION', () => testWktToGeoJSON('wkt-geometrycollection', 'geometrycollection-result'));
+      test('LINESTRING EMPTY', () => testWktToGeoJSON('wkt-linestring-empty', 'linestring-empty-result'));
+      test('POLYGON EMPTY', () => testWktToGeoJSON('wkt-polygon-empty', 'polygon-empty-result'));
+      test('POINT EMPTY (应报错)', () => {
+        const r = testWktToGeoJSON('wkt-point-empty', 'point-empty-result');
+        return { pass: r && r.error && r.error.includes('EMPTY'), error: r.error };
+      });
+
+      log += '\n=== GeoJSON → WKT 测试 ===\n';
+      test('Point → WKT', () => testGeojsonToWkt('geojson-point', 'gj-point-result'));
+      test('LineString → WKT', () => testGeojsonToWkt('geojson-linestring', 'gj-linestring-result'));
+      test('Polygon → WKT', () => testGeojsonToWkt('geojson-polygon', 'gj-polygon-result'));
+      test('MultiPoint → WKT', () => testGeojsonToWkt('geojson-multipoint', 'gj-multipoint-result'));
+      test('MultiLineString → WKT', () => testGeojsonToWkt('geojson-multilinestring', 'gj-multilinestring-result'));
+      test('MultiPolygon → WKT', () => testGeojsonToWkt('geojson-multipolygon', 'gj-multipolygon-result'));
+      test('GeometryCollection → WKT', () => testGeojsonToWkt('geojson-geometrycollection', 'gj-geometrycollection-result'));
+
+      log += '\n=== 往返测试 ===\n';
+      test('RoundTrip POINT', () => testRoundTrip('roundtrip-point', 'rt-point-result'));
+      test('RoundTrip LINESTRING', () => testRoundTrip('roundtrip-linestring', 'rt-linestring-result'));
+      test('RoundTrip POLYGON', () => testRoundTrip('roundtrip-polygon', 'rt-polygon-result'));
+      test('RoundTrip MULTIPOINT', () => testRoundTrip('roundtrip-multipoint', 'rt-multipoint-result'));
+      test('RoundTrip MULTILINESTRING', () => testRoundTrip('roundtrip-multilinestring', 'rt-multilinestring-result'));
+      test('RoundTrip MULTIPOLYGON', () => testRoundTrip('roundtrip-multipolygon', 'rt-multipolygon-result'));
+      test('RoundTrip GeometryCollection', () => testRoundTrip('roundtrip-gc', 'rt-gc-result'));
+      test('RoundTrip 3D Point', () => testRoundTrip('roundtrip-point3d', 'rt-point3d-result'));
+
+      log += '\n=== 错误处理测试 ===\n';
+      test('无效 WKT - 缺少括号', () => {
+        const r = testWktToGeoJSON('error-wkt1', 'error-wkt1-result');
+        return { pass: r && r.error, error: r.error };
+      });
+      test('无效 WKT - 错误类型', () => {
+        const r = testWktToGeoJSON('error-wkt2', 'error-wkt2-result');
+        return { pass: r && r.error, error: r.error };
+      });
+      test('Feature.geometry 为 null', () => {
+        const input = document.getElementById('error-feature').value;
+        try {
+          const feature = JSON.parse(input);
+          featureToWkt(feature);
+          return { pass: false, error: 'Should throw' };
+        } catch (e) {
+          return { pass: true };
+        }
+      });
+
+      log += `\n=== 测试结果: ${passed} 通过, ${failed} 失败 ===\n`;
+      logEl.textContent = log;
+
+      // Update summary
+      document.getElementById('test-summary').innerHTML =
+        `<strong>${passed} 通过</strong> / <strong>${failed} 失败</strong>`;
+    };
+  </script>
+</body>
+
+</html>

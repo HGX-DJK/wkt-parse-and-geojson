@@ -13,6 +13,11 @@ export default defineConfig({
       file: 'dist/index.esm.js',
       format: 'esm',
     },
+    {
+      file: 'dist/index.umd.js',
+      format: 'umd',
+      name: 'WKTGeoJSON',
+    },
   ],
   plugins: [
     typescript({
@@ -21,6 +26,5 @@ export default defineConfig({
       rootDir: './src',
     }),
   ],
-  external: [],
   treeshake: true,
 });

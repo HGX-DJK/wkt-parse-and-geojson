@@ -55,9 +55,6 @@ npm install
 # 构建（生成 dist/ 目录）
 npm run build
 
-# 监听文件变化，自动重新构建
-npm run dev
-
 # 仅做 TypeScript 类型检查（不生成文件）
 npm run typecheck
 ```
@@ -68,6 +65,7 @@ npm run typecheck
 |------|------|------|
 | `dist/index.esm.js` | ES Module | 浏览器 / 现代打包工具 |
 | `dist/index.cjs.js` | CommonJS | Node.js |
+| `dist/index.umd.js` | UMD | `<script>` 标签直接引入 |
 | `dist/index.d.ts` | TypeScript 声明 | IDE 类型提示 |
 
 ---
@@ -84,11 +82,27 @@ const { parse, build, wktToFeature } = require('./dist/index.cjs.js');
 import { parse, build, wktToFeature } from './dist/index.esm.js';
 ```
 
-### 浏览器
+### 浏览器 (script 标签)
+
+```html
+<!-- UMD 方式：通过 script 标签直接引入，全局变量 WKTGeoJSON -->
+<script src="./dist/index.umd.js"></script>
+<script>
+  const geom = WKTGeoJSON.parse('POINT (116.39 39.91)');
+  console.log(geom);
+  // → { type: 'Point', coordinates: [116.39, 39.91] }
+
+  const wkt = WKTGeoJSON.build(geom);
+  console.log(wkt);
+  // → "POINT (116.39 39.91)"
+</script>
+```
+
+### 浏览器 (ES Module)
 
 ```html
 <script type="module">
-  import { parse, build, wktToGeoJSON } from '../dist/index.esm.js';
+  import { parse, build } from '../dist/index.esm.js';
 
   const geom = parse('POINT (116.39 39.91)');
   console.log(geom);
@@ -195,7 +209,7 @@ build({ type: 'Point', coordinates: [116.39, 39.91] })
 // → 'POINT (116.39 39.91)'
 
 build({ type: 'Point', coordinates: [116.39, 39.91, 50] })
-// → 'POINT (116.39 39.91 50)'
+// → 'POINT Z (116.39 39.91 50)'
 
 build({ type: 'LineString', coordinates: [[0,0],[1,1],[2,0]] })
 // → 'LINESTRING (0 0, 1 1, 2 0)'

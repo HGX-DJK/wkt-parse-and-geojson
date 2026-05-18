@@ -355,18 +355,21 @@ class WKTBuilder {
         }
     }
     buildPoint(geom) {
-        return `POINT (${positionToWkt(geom.coordinates)})`;
+        const hasZ = geom.coordinates.length === 3;
+        return `POINT${hasZ ? ' Z' : ''} (${positionToWkt(geom.coordinates)})`;
     }
     buildLineString(geom) {
         if (geom.coordinates.length === 0)
             return 'LINESTRING EMPTY';
-        return `LINESTRING (${coordsToWkt(geom.coordinates)})`;
+        const hasZ = geom.coordinates[0].length === 3;
+        return `LINESTRING${hasZ ? ' Z' : ''} (${coordsToWkt(geom.coordinates)})`;
     }
     buildPolygon(geom) {
         if (geom.coordinates.length === 0)
             return 'POLYGON EMPTY';
-        const rings = geom.coordinates.map(ring => `(${coordsToWkt(ring)})`).join(', ');
-        return `POLYGON (${rings})`;
+        const hasZ = geom.coordinates[0].length > 0 && geom.coordinates[0][0].length === 3;
+        const ringStr = geom.coordinates.map(ring => `(${coordsToWkt(ring)})`).join(', ');
+        return `POLYGON${hasZ ? ' Z' : ''} (${ringStr})`;
     }
     /**
      * 按 OGC/ISO WKT 标准，MULTIPOINT 每个点用括号包裹：
@@ -375,23 +378,26 @@ class WKTBuilder {
     buildMultiPoint(geom) {
         if (geom.coordinates.length === 0)
             return 'MULTIPOINT EMPTY';
+        const hasZ = geom.coordinates[0].length === 3;
         const pts = geom.coordinates.map(p => `(${positionToWkt(p)})`).join(', ');
-        return `MULTIPOINT (${pts})`;
+        return `MULTIPOINT${hasZ ? ' Z' : ''} (${pts})`;
     }
     buildMultiLineString(geom) {
         if (geom.coordinates.length === 0)
             return 'MULTILINESTRING EMPTY';
+        const hasZ = geom.coordinates[0].length > 0 && geom.coordinates[0][0].length === 3;
         const lines = geom.coordinates.map(line => `(${coordsToWkt(line)})`).join(', ');
-        return `MULTILINESTRING (${lines})`;
+        return `MULTILINESTRING${hasZ ? ' Z' : ''} (${lines})`;
     }
     buildMultiPolygon(geom) {
         if (geom.coordinates.length === 0)
             return 'MULTIPOLYGON EMPTY';
+        const hasZ = geom.coordinates[0].length > 0 && geom.coordinates[0][0].length > 0 && geom.coordinates[0][0][0].length === 3;
         const polys = geom.coordinates.map(poly => {
             const rings = poly.map(ring => `(${coordsToWkt(ring)})`).join(', ');
             return `(${rings})`;
         }).join(', ');
-        return `MULTIPOLYGON (${polys})`;
+        return `MULTIPOLYGON${hasZ ? ' Z' : ''} (${polys})`;
     }
     buildGeometryCollection(geom) {
         if (geom.geometries.length === 0)

@@ -53,18 +53,21 @@ export class WKTBuilder {
   }
 
   private buildPoint(geom: Point): string {
-    return `POINT (${positionToWkt(geom.coordinates)})`;
+    const hasZ = geom.coordinates.length === 3;
+    return `POINT${hasZ ? ' Z' : ''} (${positionToWkt(geom.coordinates)})`;
   }
 
   private buildLineString(geom: LineString): string {
     if (geom.coordinates.length === 0) return 'LINESTRING EMPTY';
-    return `LINESTRING (${coordsToWkt(geom.coordinates)})`;
+    const hasZ = geom.coordinates[0].length === 3;
+    return `LINESTRING${hasZ ? ' Z' : ''} (${coordsToWkt(geom.coordinates)})`;
   }
 
   private buildPolygon(geom: Polygon): string {
     if (geom.coordinates.length === 0) return 'POLYGON EMPTY';
-    const rings = geom.coordinates.map(ring => `(${coordsToWkt(ring)})`).join(', ');
-    return `POLYGON (${rings})`;
+    const hasZ = geom.coordinates[0].length > 0 && geom.coordinates[0][0].length === 3;
+    const ringStr = geom.coordinates.map(ring => `(${coordsToWkt(ring)})`).join(', ');
+    return `POLYGON${hasZ ? ' Z' : ''} (${ringStr})`;
   }
 
   /**
@@ -73,23 +76,26 @@ export class WKTBuilder {
    */
   private buildMultiPoint(geom: MultiPoint): string {
     if (geom.coordinates.length === 0) return 'MULTIPOINT EMPTY';
+    const hasZ = geom.coordinates[0].length === 3;
     const pts = geom.coordinates.map(p => `(${positionToWkt(p)})`).join(', ');
-    return `MULTIPOINT (${pts})`;
+    return `MULTIPOINT${hasZ ? ' Z' : ''} (${pts})`;
   }
 
   private buildMultiLineString(geom: MultiLineString): string {
     if (geom.coordinates.length === 0) return 'MULTILINESTRING EMPTY';
+    const hasZ = geom.coordinates[0].length > 0 && geom.coordinates[0][0].length === 3;
     const lines = geom.coordinates.map(line => `(${coordsToWkt(line)})`).join(', ');
-    return `MULTILINESTRING (${lines})`;
+    return `MULTILINESTRING${hasZ ? ' Z' : ''} (${lines})`;
   }
 
   private buildMultiPolygon(geom: MultiPolygon): string {
     if (geom.coordinates.length === 0) return 'MULTIPOLYGON EMPTY';
+    const hasZ = geom.coordinates[0].length > 0 && geom.coordinates[0][0].length > 0 && geom.coordinates[0][0][0].length === 3;
     const polys = geom.coordinates.map(poly => {
       const rings = poly.map(ring => `(${coordsToWkt(ring)})`).join(', ');
       return `(${rings})`;
     }).join(', ');
-    return `MULTIPOLYGON (${polys})`;
+    return `MULTIPOLYGON${hasZ ? ' Z' : ''} (${polys})`;
   }
 
   private buildGeometryCollection(geom: GeometryCollection): string {

@@ -22,9 +22,8 @@ export default defineConfig({
   ],
   plugins: [
     typescript({
-      declaration: true,
-      declarationDir: './dist',
-      rootDir: './src',
+      declaration: false,
+      removeComments: true,
     }),
   ],
   treeshake: true,

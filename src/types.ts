@@ -35,7 +35,44 @@ export interface GeometryCollection {
   geometries: Geometry[];
 }
 
-export type Geometry = Point | LineString | Polygon | MultiPoint | MultiLineString | MultiPolygon | GeometryCollection;
-export type GeoJSON = Geometry;
+export type Geometry =
+  | Point
+  | LineString
+  | Polygon
+  | MultiPoint
+  | MultiLineString
+  | MultiPolygon
+  | GeometryCollection;
 
-export type WKTType = 'POINT' | 'LINESTRING' | 'POLYGON' | 'MULTIPOINT' | 'MULTILINESTRING' | 'MULTIPOLYGON' | 'GEOMETRYCOLLECTION';
+/** GeoJSON Feature，包含一个 Geometry 和任意属性 */
+export interface Feature<G extends Geometry = Geometry> {
+  type: 'Feature';
+  geometry: G | null;
+  properties: Record<string, unknown> | null;
+  id?: string | number;
+}
+
+/** GeoJSON FeatureCollection，包含多个 Feature */
+export interface FeatureCollection {
+  type: 'FeatureCollection';
+  features: Feature[];
+}
+
+/** 所有 GeoJSON 对象的联合类型 */
+export type GeoJSONObject = Geometry | Feature | FeatureCollection;
+
+/**
+ * @deprecated 请使用 `GeoJSONObject`（包含 Geometry、Feature、FeatureCollection）
+ *             或直接使用 `Geometry` 类型（仅几何体）。
+ *             此别名保留用于向后兼容。
+ */
+export type GeoJSON = GeoJSONObject;
+
+export type WKTType =
+  | 'POINT'
+  | 'LINESTRING'
+  | 'POLYGON'
+  | 'MULTIPOINT'
+  | 'MULTILINESTRING'
+  | 'MULTIPOLYGON'
+  | 'GEOMETRYCOLLECTION';

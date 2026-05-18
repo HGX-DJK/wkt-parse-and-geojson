@@ -1,5 +1,18 @@
-import { Geometry, Point, LineString, Polygon, MultiPoint, MultiLineString, MultiPolygon, GeometryCollection } from './types';
+import {
+  Position,
+  Geometry,
+  Point,
+  LineString,
+  Polygon,
+  MultiPoint,
+  MultiLineString,
+  MultiPolygon,
+  GeometryCollection,
+} from './types';
 
+/**
+ * GeoJSON 几何对象构建器（类形式，方便组合使用）
+ */
 export class GeoJSONBuilder {
   createPoint(x: number, y: number, z?: number): Point {
     return z !== undefined
@@ -7,23 +20,23 @@ export class GeoJSONBuilder {
       : { type: 'Point', coordinates: [x, y] };
   }
 
-  createLineString(coordinates: [number, number][]): LineString {
+  createLineString(coordinates: Position[]): LineString {
     return { type: 'LineString', coordinates };
   }
 
-  createPolygon(coordinates: [number, number][][]): Polygon {
+  createPolygon(coordinates: Position[][]): Polygon {
     return { type: 'Polygon', coordinates };
   }
 
-  createMultiPoint(coordinates: [number, number][]): MultiPoint {
+  createMultiPoint(coordinates: Position[]): MultiPoint {
     return { type: 'MultiPoint', coordinates };
   }
 
-  createMultiLineString(coordinates: [number, number][][]): MultiLineString {
+  createMultiLineString(coordinates: Position[][]): MultiLineString {
     return { type: 'MultiLineString', coordinates };
   }
 
-  createMultiPolygon(coordinates: [number, number][][][]): MultiPolygon {
+  createMultiPolygon(coordinates: Position[][][]): MultiPolygon {
     return { type: 'MultiPolygon', coordinates };
   }
 
@@ -32,30 +45,40 @@ export class GeoJSONBuilder {
   }
 }
 
+// 单例，避免重复实例化
+const _builder = new GeoJSONBuilder();
+
+/** 创建 Point */
 export function createPoint(x: number, y: number, z?: number): Point {
-  return new GeoJSONBuilder().createPoint(x, y, z);
+  return _builder.createPoint(x, y, z);
 }
 
-export function createLineString(coordinates: [number, number][]): LineString {
-  return { type: 'LineString', coordinates };
+/** 创建 LineString */
+export function createLineString(coordinates: Position[]): LineString {
+  return _builder.createLineString(coordinates);
 }
 
-export function createPolygon(coordinates: [number, number][][]): Polygon {
-  return { type: 'Polygon', coordinates };
+/** 创建 Polygon（第一个环为外环，后续为内环/空洞） */
+export function createPolygon(coordinates: Position[][]): Polygon {
+  return _builder.createPolygon(coordinates);
 }
 
-export function createMultiPoint(coordinates: [number, number][]): MultiPoint {
-  return { type: 'MultiPoint', coordinates };
+/** 创建 MultiPoint */
+export function createMultiPoint(coordinates: Position[]): MultiPoint {
+  return _builder.createMultiPoint(coordinates);
 }
 
-export function createMultiLineString(coordinates: [number, number][][]): MultiLineString {
-  return { type: 'MultiLineString', coordinates };
+/** 创建 MultiLineString */
+export function createMultiLineString(coordinates: Position[][]): MultiLineString {
+  return _builder.createMultiLineString(coordinates);
 }
 
-export function createMultiPolygon(coordinates: [number, number][][][]): MultiPolygon {
-  return { type: 'MultiPolygon', coordinates };
+/** 创建 MultiPolygon */
+export function createMultiPolygon(coordinates: Position[][][]): MultiPolygon {
+  return _builder.createMultiPolygon(coordinates);
 }
 
+/** 创建 GeometryCollection */
 export function createGeometryCollection(geometries: Geometry[]): GeometryCollection {
-  return new GeoJSONBuilder().createGeometryCollection(geometries);
+  return _builder.createGeometryCollection(geometries);
 }

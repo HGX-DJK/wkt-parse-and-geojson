@@ -7,15 +7,20 @@ export default defineConfig({
     {
       file: 'dist/index.cjs.js',
       format: 'cjs',
+      exports: 'named',
     },
     {
       file: 'dist/index.esm.js',
       format: 'esm',
     },
   ],
-  plugins: [typescript({
-    declaration: false
-  })],
+  plugins: [
+    typescript({
+      declaration: true,
+      declarationDir: './dist',
+      rootDir: './src',
+    }),
+  ],
   external: [],
   treeshake: true,
 });

@@ -1,4 +1,4 @@
-# wkt-parse-and-geojson
+# giser-geometry-parse
 
 一个零依赖、轻量级的 TypeScript/JavaScript 库，用于：
 - **WKT 解析**：将 WKT 字符串解析为 GeoJSON Geometry 对象
@@ -75,18 +75,18 @@ npm run typecheck
 ### Node.js
 
 ```bash
-npm install wkt-parse-and-geojson
+npm install giser-geometry-parse
 ```
 
 ```javascript
 // CommonJS
-const { parse, build, wktToFeature } = require('wkt-parse-and-geojson');
+const { parse, build, wktToFeature } = require('giser-geometry-parse');
 
 // ES Module - 按需导入
-import { parse, build, wktToFeature } from 'wkt-parse-and-geojson';
+import { parse, build, wktToFeature } from 'giser-geometry-parse';
 
 // ES Module - 命名空间导入（避免命名冲突）
-import WKT from 'wkt-parse-and-geojson';
+import WKT from 'giser-geometry-parse';
 const geom = WKT.parse('POINT (116.39 39.91)');
 ```
 
@@ -94,7 +94,7 @@ const geom = WKT.parse('POINT (116.39 39.91)');
 
 ```html
 <!-- UMD 方式：通过 script 标签直接引入，全局变量 WKTGeoJSON -->
-<script src="https://unpkg.com/wkt-parse-and-geojson/dist/index.umd.js"></script>
+<script src="https://unpkg.com/giser-geometry-parse/dist/index.umd.js"></script>
 <script>
   // 方式一：使用命名空间（推荐，避免命名冲突）
   const geom = WKTGeoJSON.parse('POINT (116.39 39.91)');
@@ -110,7 +110,7 @@ const geom = WKT.parse('POINT (116.39 39.91)');
 
 ```html
 <script type="module">
-  import { parse, build } from 'wkt-parse-and-geojson';
+  import { parse, build } from 'giser-geometry-parse';
 
   const geom = parse('POINT (116.39 39.91)');
   console.log(geom);
@@ -254,7 +254,7 @@ build({ type: 'GeometryCollection', geometries: [] })
 将 WKT 字符串转换为 GeoJSON Geometry 对象（`parse` 的语义化别名）。
 
 ```javascript
-import { wktToGeoJSON } from 'wkt-parse-and-geojson';
+import { wktToGeoJSON } from 'giser-geometry-parse';
 
 const geom = wktToGeoJSON('POLYGON ((0 0, 1 0, 1 1, 0 1, 0 0))');
 // → { type: 'Polygon', coordinates: [[[0,0],[1,0],[1,1],[0,1],[0,0]]] }
@@ -274,7 +274,7 @@ const geom = wktToGeoJSON('POLYGON ((0 0, 1 0, 1 1, 0 1, 0 0))');
 **返回：** `Feature`
 
 ```javascript
-import { wktToFeature } from 'wkt-parse-and-geojson';
+import { wktToFeature } from 'giser-geometry-parse';
 
 // 带属性
 wktToFeature('POINT (116.39 39.91)', { name: '北京', pop: 21540000 })
@@ -306,7 +306,7 @@ wktToFeature('POLYGON ((0 0, 1 0, 1 1, 0 1, 0 0))')
 **返回：** `FeatureCollection`
 
 ```javascript
-import { wktToFeatureCollection } from 'wkt-parse-and-geojson';
+import { wktToFeatureCollection } from 'giser-geometry-parse';
 
 const fc = wktToFeatureCollection(
   ['POINT (116.39 39.91)', 'POINT (121.47 31.23)', 'POINT (113.26 23.13)'],
@@ -332,7 +332,7 @@ const fc2 = wktToFeatureCollection(['POINT (0 0)', 'LINESTRING (0 0, 1 1)']);
 将 GeoJSON Geometry 对象转换为 WKT 字符串（`build` 的语义化别名）。
 
 ```javascript
-import { geojsonToWkt } from 'wkt-parse-and-geojson';
+import { geojsonToWkt } from 'giser-geometry-parse';
 
 geojsonToWkt({ type: 'Point', coordinates: [116.39, 39.91] })
 // → 'POINT (116.39 39.91)'
@@ -347,7 +347,7 @@ geojsonToWkt({ type: 'Point', coordinates: [116.39, 39.91] })
 **抛出：** 若 `Feature.geometry` 为 `null`，则抛出 `Error`
 
 ```javascript
-import { featureToWkt } from 'wkt-parse-and-geojson';
+import { featureToWkt } from 'giser-geometry-parse';
 
 featureToWkt({
   type: 'Feature',
@@ -366,7 +366,7 @@ featureToWkt({
 **返回：** `Array<string | null>`
 
 ```javascript
-import { featureCollectionToWkt } from 'wkt-parse-and-geojson';
+import { featureCollectionToWkt } from 'giser-geometry-parse';
 
 featureCollectionToWkt({
   type: 'FeatureCollection',
@@ -491,7 +491,7 @@ createGeometryCollection([
 校验 WKT 字符串格式是否合法。
 
 ```javascript
-import { validateWKT } from 'wkt-parse-and-geojson';
+import { validateWKT } from 'giser-geometry-parse';
 
 validateWKT('POINT (30.5 40.5)')
 // → { valid: true }
@@ -508,7 +508,7 @@ validateWKT('INVALID WKT')
 校验 GeoJSON Geometry 对象是否合法。
 
 ```javascript
-import { validateGeoJSON } from 'wkt-parse-and-geojson';
+import { validateGeoJSON } from 'giser-geometry-parse';
 
 validateGeoJSON({ type: 'Point', coordinates: [30.5, 40.5] })
 // → { valid: true }
@@ -525,7 +525,7 @@ validateGeoJSON({ type: 'InvalidType', coordinates: [] })
 尝试修复不规范的 WKT 字符串（处理尾部多余字符）。
 
 ```javascript
-import { tryFixWKT } from 'wkt-parse-and-geojson';
+import { tryFixWKT } from 'giser-geometry-parse';
 
 tryFixWKT('POINT (30.5 40.5) garbage')
 // → { fixed: 'POINT (30.5 40.5)', changed: true }
@@ -536,7 +536,7 @@ tryFixWKT('POINT (30.5 40.5) garbage')
 深度克隆几何对象，避免意外修改原对象。
 
 ```javascript
-import { cloneGeometry } from 'wkt-parse-and-geojson';
+import { cloneGeometry } from 'giser-geometry-parse';
 
 const original = { type: 'Point', coordinates: [0, 0] };
 const cloned = cloneGeometry(original);
@@ -549,7 +549,7 @@ cloned.coordinates[0] = 100;
 判断两个几何对象是否相等。
 
 ```javascript
-import { geometryEquals } from 'wkt-parse-and-geojson';
+import { geometryEquals } from 'giser-geometry-parse';
 
 const a = { type: 'Point', coordinates: [30.5, 40.5] };
 const b = { type: 'Point', coordinates: [30.5, 40.5] };
@@ -664,7 +664,7 @@ parse('POINT (0 0) garbage')
 ### WKT → GeoJSON Feature → 回写 WKT
 
 ```javascript
-import { wktToFeature, featureToWkt } from 'wkt-parse-and-geojson';
+import { wktToFeature, featureToWkt } from 'giser-geometry-parse';
 
 const wkt = 'POLYGON ((116 39, 117 39, 117 40, 116 40, 116 39))';
 
@@ -683,7 +683,7 @@ console.log(outputWkt);
 ### 批量城市点构建 FeatureCollection
 
 ```javascript
-import { wktToFeatureCollection } from 'wkt-parse-and-geojson';
+import { wktToFeatureCollection } from 'giser-geometry-parse';
 
 const cities = [
   { wkt: 'POINT (116.39 39.91)', props: { name: '北京', code: 'BJ' } },
@@ -703,7 +703,7 @@ console.log(JSON.stringify(fc, null, 2));
 ### 使用工厂方法组合复杂几何
 
 ```javascript
-import { createPoint, createLineString, createPolygon, createGeometryCollection, build } from 'wkt-parse-and-geojson';
+import { createPoint, createLineString, createPolygon, createGeometryCollection, build } from 'giser-geometry-parse';
 
 const collection = createGeometryCollection([
   createPoint(0, 0),
